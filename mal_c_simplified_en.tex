@@ -1,0 +1,442 @@
+\documentclass[11pt]{article}
+
+%==================== Packages ====================
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+%==================== Theorem environments ====================
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newtheorem{proposition}{Proposition}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{assumption}{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+%==================== Macros ====================
+\newcommand{\OPT}{\mathrm{OPT}}
+\newcommand{\OPTfrac}{\OPT_{\mathrm{frac}}}
+\newcommand{\OPTSF}{\OPT_{\mathrm{SF}}}
+\newcommand{\ALG}{\mathrm{ALG}}
+\newcommand{\ALGSP}{\ALG_{\mathrm{SP}}}
+\newcommand{\ALGSF}{\ALG_{\mathrm{SF}}}
+\newcommand{\ESF}{E_{\mathrm{SF}}}
+\newcommand{\src}{\mathrm{src}}
+\newcommand{\dst}{\mathrm{dst}}
+\newcommand{\dem}{\mathrm{dem}}
+\newcommand{\len}{\mathrm{len}}
+\newcommand{\Tin}{T^{(i)}_{\mathrm{in}}}
+\newcommand{\Tout}{T^{(i)}_{\mathrm{out}}}
+\newcommand{\din}{d_{\mathrm{in}}}
+\newcommand{\dout}{d_{\mathrm{out}}}
+\newcommand{\Din}{D^{(i)}_{\mathrm{in}}}
+\newcommand{\Dout}{D^{(i)}_{\mathrm{out}}}
+\DeclareMathOperator{\SP}{SP}
+
+\title{\bf A Simplified MAL-C Problem:\\[2pt]
+A $\theta$-Threshold Dual-Track Flow-Splitting Routing Algorithm and Its Analysis}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We study a simplified variant of the \emph{Minimum Aged Labelling with Capacity constraints}
+(MAL-C) problem. The objective is to assign departure-time labels to the edges of a directed
+graph and to route a set of freight demands so as to minimize the total number of unit-capacity
+trucks dispatched, where the flow on each (edge, time) pair must be rounded \emph{up} to a whole
+truck. We present a dual-track algorithm that routes bulky integer flow along shortest paths and
+consolidates fractional flow onto a Directed Steiner Forest (DSF) backbone whose departure times
+are produced by a global \emph{dual-label} construction. Under a store-and-forward model (freight
+may wait at nodes at no cost), we prove that the backbone schedule is temporally feasible and that
+every backbone edge carries at most two distinct departure labels, so that fractional flows from
+different demands genuinely share trucks. Balancing the two tracks through a splitting threshold
+$\theta$ yields an approximation ratio of $O\!\left(\sqrt{h}\,N^{1/3} + N^{2/3}\right)$, where
+$N=|V|$ and $h$ is the number of demands.
+\end{abstract}
+
+%====================================================================
+\section{Problem Description}
+%====================================================================
+
+We consider a simplified version of the \emph{Minimum Aged Labelling with Capacity constraints}
+(MAL-C) problem. To isolate the core mechanisms---topological path selection and the construction
+of time labels---we drop the original problem's \emph{maximum-label constraint} and its
+\emph{demand-release times}.
+
+\paragraph{Input.}
+\begin{itemize}[topsep=2pt,itemsep=1pt]
+  \item A directed graph $G=(V,E)$ together with an edge travel-time function
+        $w:E\to\mathbb{N}$. We write $N=|V|$.
+  \item A set of $h$ demands $D=\{d_1,\dots,d_h\}$. Each demand $d_i$ specifies a source
+        $\src(d_i)$, a destination $\dst(d_i)$, and a freight amount $\dem(d_i)\in\mathbb{R}_{\ge 0}$.
+\end{itemize}
+
+\paragraph{Output and objective.}
+The algorithm must, for every edge $e\in E$, decide a set of \emph{departure times} (the label set
+$\lambda(e)$), and it must route every unit of freight from its source to its destination. Trucks
+have capacity normalized to $1$. Even when the total flow that traverses an edge at a given time is
+fractional, an entire truck must be dispatched (\emph{unconditional round-up}). Writing
+$f_i(e,t)$ for the flow of demand $i$ on edge $e$ departing at time $t$, the goal is, subject to
+flow conservation and connectivity, to minimize the total number of trucks:
+\begin{equation}\label{eq:objective}
+  \min \;\sum_{e\in E}\;\sum_{t}\;
+  \left\lceil \sum_{i=1}^{h} f_i(e,t) \right\rceil .
+\end{equation}
+
+%====================================================================
+\section{Algorithm Design}
+%====================================================================
+
+In a logistics network the largest source of waste is ``dispatching a truck that is not full.''
+Our strategy is a \emph{dual-track} scheme. Bulky integer flow is routed directly along shortest
+paths (SP) to save travel time, while sparse fractional flow---which would otherwise force every
+demand to dispatch its own near-empty truck---is consolidated onto a backbone network, a Directed
+Steiner Forest (DSF), where many demands ride together.
+
+A splitting threshold $\theta\in(0,1)$ governs how much fractional flow is diverted to the
+backbone. The main routine (Algorithm~\ref{alg:dualtrack}) calls the label-construction subroutine
+(Algorithm~\ref{alg:duallabels}).
+
+\begin{algorithm}[t]
+\caption{$\theta$-Threshold Dual-Track Flow Splitting}
+\label{alg:dualtrack}
+\begin{algorithmic}[1]
+\Require Graph $G=(V,E)$, demand set $D$ with $|D|=h$, splitting threshold $\theta\in(0,1)$.
+\State Collect the sources and destinations of all demands; compute an approximate Directed Steiner
+       Forest on $G$, obtaining the backbone $\ESF\subseteq E$.
+\State $\lambda_{\mathrm{SF}}\gets \textsc{Assign-Dual-Labels}(\ESF,w)$
+       \Comment{assign departure times to the backbone}
+\For{each demand $d_i\in D$}
+  \State Split $\dem(d_i)$ into an integer part $d_I$ and a fractional part $d_f$ with $0\le d_f<1$.
+  \State \textbf{Integer routing:} send the $d_I$ flow along a shortest path of $G$, with the
+         corresponding labels.
+  \State \textbf{Fractional routing:}
+  \If{$d_f \le 2\theta$}
+     \State route the entire fractional flow $d_f$ on $\ESF$ (consolidated routing).
+  \Else \Comment{$d_f > 2\theta$}
+     \State force a flow of size $\theta$ onto $\ESF$ (consolidated routing);
+     \State route the remaining $d_f-\theta$ on a shortest path of $G$.
+  \EndIf
+\EndFor
+\State \textbf{Forced re-routing rule:} every fractional flow placed on $\ESF$ must strictly follow
+       the \emph{time-varying simple path} produced by \textsc{Assign-Dual-Labels}: first travel up
+       the reverse in-tree to a meeting point, then transfer to the forward out-tree.
+\end{algorithmic}
+\end{algorithm}
+
+To ensure that the fractional flows on the backbone do not produce additional wasteful round-ups
+merely because their departure times are misaligned, we design the label-construction subroutine so
+that, by construction, \emph{every backbone edge carries at most two distinct departure labels}.
+
+\begin{algorithm}[t]
+\caption{Global Dual-Label Construction}
+\label{alg:duallabels}
+\begin{algorithmic}[1]
+\Function{Assign-Dual-Labels}{$\ESF,w$}
+  \State Contract $\ESF$ into a DAG and obtain its strongly connected components (SCCs)
+         $C_1,C_2,\dots,C_K$ in topological order.
+  \For{each SCC $C_i$}
+     \State Choose a center $h_i$. Using the travel times $w(e)$, build, rooted at $h_i$:
+     \State \quad a reverse \emph{in-tree} $\Tin$, recording the weighted depth $\din(\cdot)$ from a
+            node to the root;
+     \State \quad a forward \emph{out-tree} $\Tout$, recording the weighted depth $\dout(\cdot)$ from
+            the root to a node.
+     \State Let $\Din=\max_x \din(x)$ and $\Dout=\max_x \dout(x)$ be the in- and out-radii of $C_i$.
+  \EndFor
+  \State Compute a global base time $T_i$ for each SCC by dynamic programming, so that $T_i$ exceeds
+         the schedule of every earlier SCC and dominates the arrival time of every cross-boundary
+         edge entering $C_i$ (see Lemma~\ref{lem:cross}).
+  \State \textbf{Label assignment.} Initialize $\lambda(e)=\emptyset$ for all $e\in\ESF$. For each
+         edge $e=(x,y)\in\ESF$:
+  \State \quad if $e\in\Tin$:\quad $t_{\mathrm{in}}(e)=T_i+\Din-\din(x)$;
+  \State \quad if $e\in\Tout$:\quad $t_{\mathrm{out}}(e)=T_i+\Din+\dout(x)$;
+  \State \quad if $e$ is a cross-boundary edge:\quad $t_{\mathrm{cross}}(e)=T_i+\Din+\Dout$.
+  \State \Return the label set $\lambda_{\mathrm{SF}}$.
+\EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+%====================================================================
+\section{Temporal Feasibility and the Two-Label Guarantee}\label{sec:feasibility}
+%====================================================================
+
+The benefit of the dual-label construction relies on a single modeling assumption, which is
+consistent with the objective~\eqref{eq:objective} because that objective charges only for trucks
+\emph{on edges} and never for freight resting at a node.
+
+\begin{assumption}[Free store-and-forward]\label{ass:wait}
+Freight may be buffered at any node for an arbitrary amount of time at no cost. (This is admissible
+precisely because the simplified problem omits the maximum-label / aging constraint of full MAL-C.)
+\end{assumption}
+
+The point of the construction is that each edge's label is a function of its \emph{position}
+(its depth in a tree and the base time of its SCC), and is \emph{independent of which demand}
+traverses it. We now show this yields a globally consistent schedule, so that all demands sharing an
+edge depart on the same labels and therefore share trucks.
+
+\begin{lemma}[Intra-SCC synchronization]\label{lem:intra}
+Fix an SCC $C_i$. Consider any flow that travels up the in-tree $\Tin$ and then down the out-tree
+$\Tout$ rooted at the center $h_i$. Under Assumption~\ref{ass:wait}, on every in-tree edge $e=(x,y)$
+the flow arrives at $x$ no later than $t_{\mathrm{in}}(e)$, and on every out-tree edge it arrives no
+later than $t_{\mathrm{out}}(e)$. Moreover the arrival time at any node depends only on the node, not
+on the source of the flow.
+\end{lemma}
+
+\begin{proof}
+\emph{In-tree.} Let $x_0\to x_1\to\cdots\to h_i$ be the root-ward path of a flow, with edges
+$e_k=(x_k,x_{k+1})$. By definition of weighted depth, $\din(x_k)=w(e_k)+\din(x_{k+1})$. The flow
+leaves $x_k$ at $t_{\mathrm{in}}(e_k)=T_i+\Din-\din(x_k)$, hence reaches $x_{k+1}$ at
+\[
+  \big(T_i+\Din-\din(x_k)\big)+w(e_k)
+  = T_i+\Din-\big(\din(x_k)-w(e_k)\big)
+  = T_i+\Din-\din(x_{k+1})
+  = t_{\mathrm{in}}(e_{k+1}).
+\]
+Thus the arrival time at $x_{k+1}$ equals the departure label of its outgoing in-tree edge: the flow
+proceeds with no waiting and, in particular, arrives at $x_{k+1}$ at the time
+$T_i+\Din-\din(x_{k+1})$, which depends only on $x_{k+1}$. A flow that enters the tree at a deeper
+node simply waits at its source until that node's outgoing label fires (Assumption~\ref{ass:wait}).
+At the root the arrival time is $T_i+\Din-\din(h_i)=T_i+\Din$, independent of the source.
+
+\emph{Out-tree.} Let $h_i\to y_1\to\cdots$ be a root-out path with edges $g_k=(y_k,y_{k+1})$ and
+$\dout(y_{k+1})=\dout(y_k)+w(g_k)$. The first out-edge departs $h_i$ at
+$t_{\mathrm{out}}(g_0)=T_i+\Din+\dout(h_i)=T_i+\Din$, exactly the arrival time at the root. Inductively
+the flow reaches $y_{k+1}$ at $T_i+\Din+\dout(y_{k+1})=t_{\mathrm{out}}(g_{k+1})$, again synchronized
+and source-independent.
+\end{proof}
+
+\begin{lemma}[Cross-boundary domination]\label{lem:cross}
+There exist finite base times $T_1<T_2<\cdots<T_K$ such that for every cross-boundary edge
+$e=(x,y)$ with $x\in C_i$ and $y\in C_j$ (so $i$ precedes $j$ in topological order), the flow reaches
+$x$ no later than $t_{\mathrm{cross}}(e)=T_i+\Din+\Dout$, and reaches $y$ no later than the start of
+$C_j$'s schedule. Consequently the whole route from any source to any destination is temporally
+feasible under Assumption~\ref{ass:wait}.
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lem:intra} a flow that has descended the out-tree of $C_i$ to the boundary node $x$
+arrives at time $T_i+\Din+\dout(x)\le T_i+\Din+\Dout=t_{\mathrm{cross}}(e)$; it then waits until
+$t_{\mathrm{cross}}(e)$ and crosses. It reaches $y$ at $t_{\mathrm{cross}}(e)+w(e)$. Process the SCCs
+in topological order and set
+\[
+  T_j \;\ge\; \max_{e=(x,y):\,y\in C_j}\Big(t_{\mathrm{cross}}(e)+w(e)\Big),
+\]
+which is well defined because the contracted graph is a DAG and every such $e$ originates in an
+earlier SCC. With this choice every flow entering $C_j$ has already arrived before $C_j$'s in-tree
+schedule begins, so it waits at the entry node and joins the local schedule. Feasibility follows by
+induction on the topological order.
+\end{proof}
+
+\begin{theorem}[Two labels per edge and consolidation]\label{thm:twolabels}
+\textsc{Assign-Dual-Labels} assigns at most two distinct departure labels to every backbone edge, and
+under Assumption~\ref{ass:wait} all fractional flows routed on a common backbone edge depart on those
+labels. Hence each backbone edge incurs at most two round-ups in the objective~\eqref{eq:objective}.
+\end{theorem}
+
+\begin{proof}
+Within an SCC the in-tree and out-tree are each a spanning arborescence of distinct orientation; an
+edge $e=(x,y)$ may lie on the root-ward in-tree path \emph{and} on a root-out path, receiving the two
+labels $t_{\mathrm{in}}(e)$ and $t_{\mathrm{out}}(e)$, but no more. A cross-boundary edge is disjoint
+from the trees and receives the single label $t_{\mathrm{cross}}(e)$. Hence at most two labels per
+edge. By Lemmas~\ref{lem:intra}--\ref{lem:cross} every flow using an edge arrives no later than the
+relevant label and (with free waiting) departs exactly on it, so all demands sharing the edge are
+consolidated onto its $\le 2$ labelled trucks.
+\end{proof}
+
+%====================================================================
+\section{Approximation-Ratio Analysis}\label{sec:analysis}
+%====================================================================
+
+We compare the algorithm's cost $\ALG=\ALGSP+\ALGSF$ against the true optimum $\OPT$ of
+\eqref{eq:objective}. Although $\OPT$ is unknown, it is bounded below by two ideal quantities.
+
+\begin{definition}[Lower bounds]\label{def:lb}
+\leavevmode
+\begin{itemize}[topsep=2pt,itemsep=2pt]
+  \item \textbf{Fractional-flow bound $\OPTfrac$:} the cost when fractional trucks are permitted (no
+        round-up) and all flow travels along shortest paths,
+        $\OPTfrac=\sum_{i=1}^{h}\dem(d_i)\cdot\len(\SP_i)$,
+        where $\len(\SP_i)$ is the number of edges on a shortest $\src(d_i)$--$\dst(d_i)$ path.
+        Since every unit of flow is forced to round up in reality, $\OPT\ge\OPTfrac$.
+  \item \textbf{Connectivity bound $\OPTSF$:} regardless of how small a flow is, each source must be
+        physically connected to its destination, so the optimum solution contains a Directed Steiner
+        Forest; with unit edge cost, the minimum DSF edge count is a floor, $\OPT\ge\OPTSF$.
+\end{itemize}
+\end{definition}
+
+Throughout, $\rho_{\mathrm{DSF}}=O(N^{2/3})$ denotes the approximation factor of the DSF routine used
+in line~1 of Algorithm~\ref{alg:dualtrack}, so the backbone satisfies
+$|\ESF|\le \rho_{\mathrm{DSF}}\cdot\OPTSF=O(N^{2/3})\cdot\OPTSF$.
+
+%--------------------------------------------------------------------
+\subsection{Cost of the shortest-path (SP) track}
+%--------------------------------------------------------------------
+
+The SP track carries (i) the integer parts $d_I$ of every demand and (ii) the leftover fractional
+pieces $x=d_f-\theta$ for demands with $d_f>2\theta$.
+
+\paragraph{Integer flow.} Integer flow never wastes a truck: on any edge the rounded value of a sum
+of integers equals the sum itself, $\lceil\sum d_I\rceil=\sum d_I$. Hence
+\begin{equation}\label{eq:spint}
+  \ALGSP^{\mathrm{int}}=\sum_{i=1}^{h} d_I^{(i)}\cdot\len(\SP_i)
+  \;\le\;\sum_{i=1}^{h}\dem(d_i)\cdot\len(\SP_i)=\OPTfrac .
+\end{equation}
+
+\paragraph{Leftover fractional flow.} By the splitting rule, a fractional piece reaches the SP track
+only when $d_f>2\theta$, in which case its size satisfies the key inequality
+\begin{equation}\label{eq:xtheta}
+  x=d_f-\theta \;>\; 2\theta-\theta=\theta .
+\end{equation}
+On the SP track each such piece is rounded up to $\lceil x\rceil=1$ truck per edge. Using
+$x>\theta\Rightarrow 1<x/\theta$ from \eqref{eq:xtheta},
+\begin{equation}\label{eq:spfrac}
+  \ALGSP^{\mathrm{frac}}
+  =\sum_{i:\,d_f>2\theta} 1\cdot\len(\SP_i)
+  \;<\;\sum_{i:\,d_f>2\theta}\frac{x_i}{\theta}\,\len(\SP_i)
+  =\frac1\theta\sum_{i:\,d_f>2\theta} x_i\,\len(\SP_i)
+  \;\le\;\frac1\theta\,\OPTfrac ,
+\end{equation}
+where the last step uses $x_i\le\dem(d_i)$ and that the pieces $\{x_i\}$ form a sub-collection of the
+total flow, so $\sum x_i\len(\SP_i)\le\sum_i\dem(d_i)\len(\SP_i)=\OPTfrac$. (This is the corrected
+form of the bound: the relation to $\OPTfrac$ is an \emph{inequality}, not an equality, and the
+integer-flow contribution~\eqref{eq:spint} is accounted for separately.)
+
+Adding \eqref{eq:spint} and \eqref{eq:spfrac},
+\begin{equation}\label{eq:sp}
+  \boxed{\;\ALGSP \;\le\; \Big(1+\tfrac1\theta\Big)\OPTfrac
+  \;=\; O\!\Big(\tfrac1\theta\Big)\cdot\OPT.\;}
+\end{equation}
+Intuitively: the smaller $\theta$ is, the lower the threshold for diverting flow to the SP track, and
+the larger the round-up blow-up factor $1/\theta$.
+
+%--------------------------------------------------------------------
+\subsection{Cost of the Steiner-forest (SF) track}
+%--------------------------------------------------------------------
+
+By the splitting rule, every demand injects at most $2\theta$ of flow into the backbone (it injects
+$d_f\le 2\theta$ when $d_f\le 2\theta$, and exactly $\theta$ when $d_f>2\theta$). Let demand $i$ route
+its backbone flow $s_i\le 2\theta$ along a path $R_i\subseteq\ESF$, and let $F_e=\sum_{i:\,e\in R_i}s_i$
+be the total flow on backbone edge $e$.
+
+By Theorem~\ref{thm:twolabels} each backbone edge carries at most two labels with flows
+$f_{t_1}(e),f_{t_2}(e)$ summing to $F_e$. Since $\lceil z\rceil\le z+1$ for $z\ge 0$, the truck count
+on a single edge obeys
+\begin{equation}\label{eq:peredge}
+  \lceil f_{t_1}(e)\rceil+\lceil f_{t_2}(e)\rceil \;\le\; F_e+2 .
+\end{equation}
+Summing \eqref{eq:peredge} over all backbone edges,
+\begin{equation}\label{eq:sfsum}
+  \ALGSF \;\le\; \sum_{e\in\ESF}\big(F_e+2\big)
+  \;=\;\underbrace{\sum_{e\in\ESF}F_e}_{\text{flow term}}
+  \;+\;\underbrace{2\,|\ESF|}_{\text{infrastructure term}} .
+\end{equation}
+
+\paragraph{Flow term.} Each backbone path has at most $|\ESF|$ edges, so
+\begin{equation}\label{eq:flowterm}
+  \sum_{e\in\ESF}F_e=\sum_{i=1}^{h} s_i\,|R_i|
+  \;\le\; 2\theta\sum_{i=1}^{h}|R_i|
+  \;\le\; 2\theta\cdot h\cdot|\ESF|
+  \;=\; 2h\theta\,|\ESF| .
+\end{equation}
+
+\paragraph{Infrastructure term.} Even an edge that carries only an infinitesimal flow must dispatch a
+whole truck per label; with at most two labels this is at most $2$ trucks per edge, giving the
+$2|\ESF|$ term. \emph{This term is independent of $\theta$ and must not be dropped:} it is the
+unavoidable cost of physically operating the backbone.
+
+Combining \eqref{eq:sfsum}--\eqref{eq:flowterm} and $|\ESF|\le O(N^{2/3})\OPTSF$,
+\begin{equation}\label{eq:sf}
+  \boxed{\;\ALGSF \;\le\; 2(h\theta+1)\,|\ESF|
+  \;=\; O\!\big((h\theta+1)\,N^{2/3}\big)\cdot\OPTSF
+  \;\le\; O\!\big((h\theta+1)\,N^{2/3}\big)\cdot\OPT.\;}
+\end{equation}
+Intuitively: the larger $\theta$ is, the more total flow you allow into the backbone and the more the
+flow term grows; the additive $N^{2/3}$ is the price of building the backbone at all.
+
+%--------------------------------------------------------------------
+\subsection{Balancing the bounds and the final ratio}
+%--------------------------------------------------------------------
+
+Adding \eqref{eq:sp} and \eqref{eq:sf}, the overall ratio is
+\begin{equation}\label{eq:total}
+  \mathrm{TotalRatio}(\theta)
+  \;=\; O\!\Big(\tfrac1\theta\Big)
+  \;+\; O\!\big(h\theta\,N^{2/3}\big)
+  \;+\; O\!\big(N^{2/3}\big).
+\end{equation}
+Only the first two terms depend on $\theta$. Minimizing $\tfrac1\theta+h\theta N^{2/3}$ by equating
+the two,
+\begin{equation}\label{eq:thetastar}
+  \frac1\theta = h\theta\,N^{2/3}
+  \;\Longrightarrow\; \theta^2=\frac{1}{h\,N^{2/3}}
+  \;\Longrightarrow\; \theta^\ast=\frac{1}{\sqrt{h}\,N^{1/3}}\in(0,1).
+\end{equation}
+At $\theta^\ast$ each of the first two terms equals $\sqrt{h}\,N^{1/3}$, while the third is unchanged,
+so
+\begin{equation}\label{eq:final}
+  \boxed{\;\mathrm{TotalRatio}(\theta^\ast)
+  \;=\; O\!\big(\sqrt{h}\,N^{1/3}+N^{2/3}\big)
+  \;=\; O\!\big(\max\{\sqrt{h}\,N^{1/3},\,N^{2/3}\}\big).\;}
+\end{equation}
+
+\begin{theorem}[Approximation guarantee]\label{thm:main}
+Under Assumption~\ref{ass:wait}, Algorithm~\ref{alg:dualtrack} with threshold
+$\theta^\ast=1/(\sqrt{h}\,N^{1/3})$ produces a feasible routing and labelling whose cost is within a
+factor $O\!\big(\sqrt{h}\,N^{1/3}+N^{2/3}\big)$ of the optimum of~\eqref{eq:objective}.
+\end{theorem}
+
+\begin{remark}[Two regimes]
+The bound \eqref{eq:final} separates into two regimes, with the crossover at $h=N^{2/3}$:
+\[
+  \mathrm{TotalRatio}(\theta^\ast)=
+  \begin{cases}
+    O\!\big(\sqrt{h}\,N^{1/3}\big), & h\ge N^{2/3}\ \ (\text{round-up dominated}),\\[4pt]
+    O\!\big(N^{2/3}\big),           & h< N^{2/3}\ \ (\text{backbone dominated}).
+  \end{cases}
+\]
+When demands are plentiful the dual-track splitting is what limits the cost; when demands are few the
+cost is governed by the cost of the Directed Steiner Forest itself, i.e.\ by the DSF approximation
+factor $\rho_{\mathrm{DSF}}=O(N^{2/3})$. No choice of $\theta$ removes the $N^{2/3}$ term, since the
+backbone must be built to enable consolidation.
+\end{remark}
+
+\begin{remark}[On a common pitfall]
+A naive analysis drops the infrastructure term $2|\ESF|$ in \eqref{eq:sfsum}, folding it into
+$O(h\theta\,N^{2/3})$. That is valid only when $h\theta\ge 1$. At the balancing optimum, however,
+$h\theta^\ast=\sqrt{h}/N^{1/3}<1$ whenever $h<N^{2/3}$, so the additive term in fact \emph{dominates}
+and cannot be absorbed. Retaining it yields the honest bound \eqref{eq:final}; omitting it would
+incorrectly claim $O(\sqrt{h}\,N^{1/3})$.
+\end{remark}
+
+%====================================================================
+\section{Conclusion}
+%====================================================================
+
+We presented a dual-track routing-and-labelling algorithm for the simplified MAL-C problem. The
+$\theta$-threshold rule sends bulky integer flow along shortest paths and consolidates fractional
+flow onto a Directed Steiner Forest backbone. The global dual-label construction equips the backbone
+with a temporally consistent schedule (Theorem~\ref{thm:twolabels}): under a free store-and-forward
+model, intra-component routing is exactly synchronized and cross-component routing is made feasible
+by base times that dominate all incoming arrivals, so that each backbone edge carries at most two
+labels and fractional flows from different demands genuinely share trucks. A careful, complete cost
+analysis---retaining the $\theta$-independent backbone term---gives an approximation ratio of
+\[
+  O\!\big(\sqrt{h}\,N^{1/3}+N^{2/3}\big),
+\]
+attained at $\theta^\ast=1/(\sqrt{h}\,N^{1/3})$. The bound is round-up dominated when $h\ge N^{2/3}$
+and backbone dominated otherwise, the latter reflecting the intrinsic cost of the Directed Steiner
+Forest approximation.
+
+\end{document}
