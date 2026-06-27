@@ -59,8 +59,9 @@ trucks dispatched, where the flow on each (edge, time) pair must be rounded \emp
 truck. We present a dual-track algorithm that routes bulky integer flow along shortest paths and
 consolidates fractional flow onto a Directed Steiner Forest (DSF) backbone whose departure times
 are produced by a global \emph{dual-label} construction. Under a store-and-forward model (freight
-may wait at nodes at no cost), we prove that the backbone schedule is temporally feasible and that
-every backbone edge carries at most two distinct departure labels, so that fractional flows from
+may wait at nodes at no cost), we prove that the labels turn the canonical route of every
+source--destination pair---within an SCC or across SCCs---into a temporal (time-respecting) path, and
+that every backbone edge carries at most two distinct departure labels, so that fractional flows from
 different demands genuinely share trucks. Balancing the two tracks through a splitting threshold
 $\theta$ yields an approximation ratio of $O\!\left(\sqrt{h}\,N^{1/3} + N^{2/3}\right)$, where
 $N=|V|$ and $h$ is the number of demands.
@@ -181,62 +182,105 @@ Freight may be buffered at any node for an arbitrary amount of time at no cost. 
 precisely because the simplified problem omits the maximum-label / aging constraint of full MAL-C.)
 \end{assumption}
 
-The point of the construction is that each edge's label is a function of its \emph{position}
-(its depth in a tree and the base time of its SCC), and is \emph{independent of which demand}
-traverses it. We now show this yields a globally consistent schedule, so that all demands sharing an
-edge depart on the same labels and therefore share trucks.
+The key property of the construction is that each edge's label is a function of its
+\emph{position}---its depth in a tree and the base time of its SCC---and is \emph{independent of
+which demand} traverses it. We make feasibility precise through the notion of a \emph{temporal path}
+and prove that the labels turn the canonical route of \emph{every} terminal pair into one, whether
+the two endpoints lie in the same SCC or in different SCCs.
 
-\begin{lemma}[Intra-SCC synchronization]\label{lem:intra}
-Fix an SCC $C_i$. Consider any flow that travels up the in-tree $\Tin$ and then down the out-tree
-$\Tout$ rooted at the center $h_i$. Under Assumption~\ref{ass:wait}, on every in-tree edge $e=(x,y)$
-the flow arrives at $x$ no later than $t_{\mathrm{in}}(e)$, and on every out-tree edge it arrives no
-later than $t_{\mathrm{out}}(e)$. Moreover the arrival time at any node depends only on the node, not
-on the source of the flow.
+\begin{definition}[Temporal path / journey]\label{def:temporal}
+Given the labels produced by \textsc{Assign-Dual-Labels}, a \emph{temporal path} (time-respecting
+journey) from $u$ to $v$ is a walk $u=z_0,z_1,\dots,z_k=v$ in $\ESF$ together with chosen departure
+times $\tau_j\in\lambda\big((z_{j-1},z_j)\big)$ that satisfy the time-respecting condition
+\[
+  \tau_{j+1}\;\ge\;\tau_j+w\big((z_{j-1},z_j)\big)\qquad(1\le j<k),
+\]
+i.e.\ every hop departs no earlier than the freight's arrival at its tail. Under
+Assumption~\ref{ass:wait} a temporal path is exactly a physically realizable journey: the freight
+rides edge $(z_{j-1},z_j)$ at time $\tau_j$ and idles at $z_j$ for the non-negative slack
+$\tau_{j+1}-\big(\tau_j+w\big)$.
+\end{definition}
+
+\begin{definition}[Canonical backbone route]\label{def:canonical}
+Let $u,v$ be terminals joined through the backbone, and let
+$C_{i_0}\prec C_{i_1}\prec\cdots\prec C_{i_m}$ be the SCCs visited in topological order, with
+$C_{i_0}=C(u)$ the SCC of $u$ and $C_{i_m}=C(v)$ that of $v$, where consecutive SCCs
+$C_{i_{l-1}},C_{i_l}$ are joined by a cross edge $c_l=(p_l,q_l)$, $p_l\in C_{i_{l-1}}$,
+$q_l\in C_{i_l}$ ($1\le l\le m$). The \emph{canonical route} $R(u,v)$ obeys the forced re-routing
+rule inside every visited SCC: it enters at the entry node ($u$ when $l=0$, otherwise $q_l$), climbs
+the in-tree to the center $h_{i_l}$, then descends the out-tree to the exit node ($v$ when $l=m$,
+otherwise $p_{l+1}$); the segments are spliced by the cross edges $c_l$. When $m=0$ (a single SCC)
+the route is simply $u\uparrow h_{i_0}\downarrow v$.
+\end{definition}
+
+We now prove temporality in two steps---one SCC segment, then one cross hop---and splice them by
+induction. This is the temporal-path counterpart of the original ``intra-SCC'' and ``cross-boundary''
+lemmas.
+
+\begin{lemma}[Each SCC segment is temporal]\label{lem:intra}
+Let $a,b$ lie in the same SCC $C_i$ and consider the segment $a\uparrow h_i\downarrow b$ of a
+canonical route, with the freight released at $a$ no later than $T_i+\Din-\din(a)$. Then the segment
+is a temporal path, and after release the freight departs every hop \emph{exactly} at its label (no
+internal waiting): on the up-phase it leaves a node $z$ at $t_{\mathrm{in}}=T_i+\Din-\din(z)$ and
+reaches $h_i$ at $T_i+\Din$; on the down-phase it leaves $z$ at $t_{\mathrm{out}}=T_i+\Din+\dout(z)$
+and reaches $b$ at $T_i+\Din+\dout(b)$. Every arrival time depends only on the node, not on $a$, and
+the whole segment is scheduled within the window $[\,T_i,\;T_i+\Din+\Dout\,]$.
 \end{lemma}
 
 \begin{proof}
-\emph{In-tree.} Let $x_0\to x_1\to\cdots\to h_i$ be the root-ward path of a flow, with edges
-$e_k=(x_k,x_{k+1})$. By definition of weighted depth, $\din(x_k)=w(e_k)+\din(x_{k+1})$. The flow
-leaves $x_k$ at $t_{\mathrm{in}}(e_k)=T_i+\Din-\din(x_k)$, hence reaches $x_{k+1}$ at
+\emph{Up-phase.} Let $a=x_0\to x_1\to\cdots\to h_i$ be the root-ward path, $e_k=(x_k,x_{k+1})$, so
+$\din(x_k)=w(e_k)+\din(x_{k+1})$. Departing $x_k$ at $\tau_k=t_{\mathrm{in}}(e_k)=T_i+\Din-\din(x_k)$,
+the freight reaches $x_{k+1}$ at
 \[
-  \big(T_i+\Din-\din(x_k)\big)+w(e_k)
-  = T_i+\Din-\big(\din(x_k)-w(e_k)\big)
-  = T_i+\Din-\din(x_{k+1})
-  = t_{\mathrm{in}}(e_{k+1}).
+  \tau_k+w(e_k)=\big(T_i+\Din-\din(x_k)\big)+w(e_k)
+  =T_i+\Din-\din(x_{k+1})=t_{\mathrm{in}}(e_{k+1})=\tau_{k+1}.
 \]
-Thus the arrival time at $x_{k+1}$ equals the departure label of its outgoing in-tree edge: the flow
-proceeds with no waiting and, in particular, arrives at $x_{k+1}$ at the time
-$T_i+\Din-\din(x_{k+1})$, which depends only on $x_{k+1}$. A flow that enters the tree at a deeper
-node simply waits at its source until that node's outgoing label fires (Assumption~\ref{ass:wait}).
-At the root the arrival time is $T_i+\Din-\din(h_i)=T_i+\Din$, independent of the source.
+Hence $\tau_{k+1}=\tau_k+w(e_k)$ holds with equality: each up-hop is time-respecting with zero slack,
+and the arrival at $x_{k+1}$ depends only on $x_{k+1}$. The earliest up-departure anywhere in $C_i$
+is at the deepest node, $T_i+\Din-\Din=T_i$, so any admissible release time
+$\le T_i+\Din-\din(a)$ (which is $\ge T_i$) is consistent. At the root the arrival is $T_i+\Din$.
 
-\emph{Out-tree.} Let $h_i\to y_1\to\cdots$ be a root-out path with edges $g_k=(y_k,y_{k+1})$ and
+\emph{Out-tree.} Let $h_i\to y_1\to\cdots\to b$ with $g_k=(y_k,y_{k+1})$ and
 $\dout(y_{k+1})=\dout(y_k)+w(g_k)$. The first out-edge departs $h_i$ at
-$t_{\mathrm{out}}(g_0)=T_i+\Din+\dout(h_i)=T_i+\Din$, exactly the arrival time at the root. Inductively
-the flow reaches $y_{k+1}$ at $T_i+\Din+\dout(y_{k+1})=t_{\mathrm{out}}(g_{k+1})$, again synchronized
-and source-independent.
+$t_{\mathrm{out}}(g_0)=T_i+\Din+\dout(h_i)=T_i+\Din$, matching the root arrival (zero turn-around).
+Inductively the freight reaches $y_{k+1}$ at $T_i+\Din+\dout(y_{k+1})=t_{\mathrm{out}}(g_{k+1})$,
+again with equality. The segment is therefore a temporal path that finishes by
+$T_i+\Din+\dout(b)\le T_i+\Din+\Dout$.
 \end{proof}
 
-\begin{lemma}[Cross-boundary domination]\label{lem:cross}
-There exist finite base times $T_1<T_2<\cdots<T_K$ such that for every cross-boundary edge
-$e=(x,y)$ with $x\in C_i$ and $y\in C_j$ (so $i$ precedes $j$ in topological order), the flow reaches
-$x$ no later than $t_{\mathrm{cross}}(e)=T_i+\Din+\Dout$, and reaches $y$ no later than the start of
-$C_j$'s schedule. Consequently the whole route from any source to any destination is temporally
-feasible under Assumption~\ref{ass:wait}.
+\begin{lemma}[Cross edges preserve temporality]\label{lem:cross}
+Suppose the base times are chosen, in topological order, so that
+\[
+  T_j \;\ge\; \max_{\,(x,y):\,y\in C_j}\Big(t_{\mathrm{cross}}(x,y)+w(x,y)\Big)
+  \qquad\text{and}\qquad T_j>T_{j-1};
+\]
+such values exist because the contracted graph is a DAG, so the right-hand side depends only on
+strictly earlier SCCs. Then for every cross edge $c=(x,y)$ with $x\in C_i$, $y\in C_j$: by
+Lemma~\ref{lem:intra} the freight reaches $x$ by $T_i+\Din+\dout(x)\le T_i+\Din+\Dout
+=t_{\mathrm{cross}}(c)$, so it may legally depart $c$ at its single label $t_{\mathrm{cross}}(c)$ and
+arrive at $y$ by $t_{\mathrm{cross}}(c)+w(c)\le T_j$. Since the in-tree departure at $y$ is
+$T_j+D^{(j)}_{\mathrm{in}}-\din(y)\ge T_j$, the freight waits at $y$ and continues up $C_j$'s in-tree.
+Thus the cross hop and the hand-off into $C_j$ are both time-respecting.
 \end{lemma}
 
+\begin{theorem}[Universal temporal realizability]\label{thm:temporal}
+For \emph{every} ordered terminal pair $(u,v)$ connected through the backbone---whether $u$ and $v$
+lie in the same SCC or in different SCCs---the canonical route $R(u,v)$ is a temporal path under the
+labels of \textsc{Assign-Dual-Labels}. Consequently, under Assumption~\ref{ass:wait}, all backbone
+demands are simultaneously and physically routable.
+\end{theorem}
+
 \begin{proof}
-By Lemma~\ref{lem:intra} a flow that has descended the out-tree of $C_i$ to the boundary node $x$
-arrives at time $T_i+\Din+\dout(x)\le T_i+\Din+\Dout=t_{\mathrm{cross}}(e)$; it then waits until
-$t_{\mathrm{cross}}(e)$ and crosses. It reaches $y$ at $t_{\mathrm{cross}}(e)+w(e)$. Process the SCCs
-in topological order and set
-\[
-  T_j \;\ge\; \max_{e=(x,y):\,y\in C_j}\Big(t_{\mathrm{cross}}(e)+w(e)\Big),
-\]
-which is well defined because the contracted graph is a DAG and every such $e$ originates in an
-earlier SCC. With this choice every flow entering $C_j$ has already arrived before $C_j$'s in-tree
-schedule begins, so it waits at the entry node and joins the local schedule. Feasibility follows by
-induction on the topological order.
+Induct on the number $m$ of cross edges of $R(u,v)$. \emph{Base $m=0$:} $u,v$ share an SCC and
+$R(u,v)=u\uparrow h_{i_0}\downarrow v$ is a temporal path by Lemma~\ref{lem:intra}, releasing $u$ at
+its in-tree label. \emph{Inductive step:} suppose the prefix of $R(u,v)$ up to the entry node $q_l$
+of $C_{i_l}$ is a temporal path that delivers the freight to $q_l$ by time $T_{i_l}$ (this holds for
+$l=1$ by the base case followed by Lemma~\ref{lem:cross}). The segment inside $C_{i_l}$ from $q_l$ to
+its exit node is temporal by Lemma~\ref{lem:intra}, since its release time $\ge T_{i_l}$ is
+admissible; the following cross edge $c_{l+1}$ and the hand-off into $C_{i_{l+1}}$ are temporal by
+Lemma~\ref{lem:cross} and deliver the freight to $q_{l+1}$ by $T_{i_{l+1}}$. Splicing time-respecting
+sub-walks yields a time-respecting walk, so $R(u,v)$ is a temporal path; the case $u,v$ in different
+SCCs is exactly $m\ge1$.
 \end{proof}
 
 \begin{theorem}[Two labels per edge and consolidation]\label{thm:twolabels}
@@ -246,13 +290,17 @@ labels. Hence each backbone edge incurs at most two round-ups in the objective~\
 \end{theorem}
 
 \begin{proof}
-Within an SCC the in-tree and out-tree are each a spanning arborescence of distinct orientation; an
-edge $e=(x,y)$ may lie on the root-ward in-tree path \emph{and} on a root-out path, receiving the two
-labels $t_{\mathrm{in}}(e)$ and $t_{\mathrm{out}}(e)$, but no more. A cross-boundary edge is disjoint
-from the trees and receives the single label $t_{\mathrm{cross}}(e)$. Hence at most two labels per
-edge. By Lemmas~\ref{lem:intra}--\ref{lem:cross} every flow using an edge arrives no later than the
-relevant label and (with free waiting) departs exactly on it, so all demands sharing the edge are
-consolidated onto its $\le 2$ labelled trucks.
+Within an SCC the in-tree and the out-tree are arborescences of opposite orientation (toward,
+respectively away from, the center). A directed edge $e=(x,y)$ may belong to the in-tree---used by
+up-phase traffic with label $t_{\mathrm{in}}(e)$---and \emph{simultaneously} to the out-tree---used
+by down-phase traffic with label $t_{\mathrm{out}}(e)$---as happens on a directed cycle
+$h_i\to x\to y\to h_i$, but it plays no third role. A cross-boundary edge is disjoint from the trees
+and carries the single label $t_{\mathrm{cross}}(e)$. Hence every backbone edge has at most two
+labels. By Theorem~\ref{thm:temporal} each demand's canonical route is a temporal path that departs
+$e$ exactly on the label of the role ($t_{\mathrm{in}}$, $t_{\mathrm{out}}$, or $t_{\mathrm{cross}}$)
+in which it traverses $e$; thus all demands using $e$ in the same role depart together, and the
+trucks on $e$ number at most $\lceil f_{t_1}(e)\rceil+\lceil f_{t_2}(e)\rceil$, i.e.\ at most two
+round-ups.
 \end{proof}
 
 %====================================================================
@@ -427,10 +475,11 @@ incorrectly claim $O(\sqrt{h}\,N^{1/3})$.
 We presented a dual-track routing-and-labelling algorithm for the simplified MAL-C problem. The
 $\theta$-threshold rule sends bulky integer flow along shortest paths and consolidates fractional
 flow onto a Directed Steiner Forest backbone. The global dual-label construction equips the backbone
-with a temporally consistent schedule (Theorem~\ref{thm:twolabels}): under a free store-and-forward
-model, intra-component routing is exactly synchronized and cross-component routing is made feasible
-by base times that dominate all incoming arrivals, so that each backbone edge carries at most two
-labels and fractional flows from different demands genuinely share trucks. A careful, complete cost
+with a temporally consistent schedule: under a free store-and-forward model the canonical route of
+every terminal pair is a temporal path (Theorem~\ref{thm:temporal})---intra-component segments are
+exactly synchronized and cross-component hops are absorbed by base times that dominate all incoming
+arrivals---so that each backbone edge carries at most two labels (Theorem~\ref{thm:twolabels}) and
+fractional flows from different demands genuinely share trucks. A careful, complete cost
 analysis---retaining the $\theta$-independent backbone term---gives an approximation ratio of
 \[
   O\!\big(\sqrt{h}\,N^{1/3}+N^{2/3}\big),
