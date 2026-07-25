@@ -10,6 +10,7 @@
 \usetikzlibrary{arrows.meta, positioning, shapes.geometric, calc}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{float}
 \usepackage{enumitem}
 \usepackage{hyperref}
 \hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
@@ -74,10 +75,10 @@ and $h$ is the number of demands.
 %====================================================================
 
 We study the \emph{Minimum Aged Labelling with Capacity constraints} (MAL-C) problem, a temporal
-network-design problem in the lineage of Minimum Aged Labelling introduced by Carnevale et
-al.~\cite{CDO25}. In a temporal (time-varying) network an edge may be traversed only at a prescribed
-set of \emph{departure times}; the task is to choose these times and a routing of all freight so that
-every demand is delivered while as few trucks as possible are dispatched.
+network-design problem that augments Minimum Aged Labelling with truck-capacity constraints. In a
+temporal (time-varying) network an edge may be traversed only at a prescribed set of \emph{departure
+times}; the task is to choose these times and a routing of all freight so that every demand is
+delivered while as few trucks as possible are dispatched.
 
 \paragraph{Input.}
 \begin{itemize}[topsep=2pt,itemsep=1pt]
@@ -126,14 +127,20 @@ backbone $\ESF\subseteq E$ that connects every source to its destination. We wri
 $\textsc{Build-Backbone}(G,D)$ for this step, returning $\ESF$.
 
 \paragraph{Shortest-path routing with induced labels.}
-To route $g$ units from $s$ to $t$ along a shortest path $P=(s=v_0,v_1,\dots,v_\ell=t)$ we turn $P$
-into a temporal path by assigning \emph{induced labels}. Fixing a release time $t_{\mathrm{SP}}$, the
-edge $(v_{k-1},v_k)$ is given the label $t_{\mathrm{SP}}+\sum_{j=1}^{k-1}w(v_{j-1},v_j)$---the time at
-which the freight reaches its tail $v_{k-1}$---which is added to $\lambda(v_{k-1}v_k)$. Every edge then
-departs exactly when the flow arrives at it, so the flow rides a single temporal path and reaches $t$
-after $\sum_{e\in P}w(e)$ time; this is what routing ``with the corresponding labels'' means. We write
-$\textsc{Route-SP}(s,t,g)$ for this subroutine, and $\len(\SP_{s,t})$ for the number of edges on the
-shortest path.
+$\textsc{Route-SP}(s,t,g)$ sends $g$ units along a shortest $s$--$t$ path
+$P=(s=v_0,v_1,\dots,v_\ell=t)$ and labels its edges so that they form a temporal path. All freight
+departs its source at time $0$ (consistent with our omission of release times), so the label of the
+$k$-th edge $(v_{k-1},v_k)$ is simply the time at which the freight reaches its tail $v_{k-1}$, i.e.\
+the cumulative travel time
+\[
+  \ell_k \;=\; \sum_{j=1}^{k-1} w(v_{j-1},v_j),
+\]
+which is added to $\lambda(v_{k-1}v_k)$. For instance, on $a\to b\to c$ the freight leaves $a$ at time
+$0$, so $(a,b)$ receives label $0$; if $w(a,b)=3$ it reaches $b$ at time $3$, so $(b,c)$ receives label
+$3$ (in general the next edge is labelled with the arrival time $t_j+w(e_j)$ at its tail); and so on
+down the path. Every edge therefore departs exactly when the flow arrives at it, so the flow rides a
+single temporal path and reaches $t$ after $\sum_{e\in P}w(e)$ time. We write $\len(\SP_{s,t})$ for the
+number of edges on the shortest path.
 
 \paragraph{The dual-track split.}
 We split $\dem(d_i)=d_I+d_f$ into its integer part $d_I=\lfloor\dem(d_i)\rfloor$ and fractional part
@@ -187,10 +194,9 @@ freight resting at a node.
 
 \subsection{Temporal graphs and the label construction}
 
-We recall the standard temporal-network vocabulary~\cite{CDO25}, specialised to edge-weighted travel
-times.
+We use the following standard temporal-network vocabulary, specialised to edge-weighted travel times.
 
-\begin{definition}[Temporal graph, temporal path, temporal connectivity~\cite{CDO25}]\label{def:temporal}
+\begin{definition}[Temporal graph, temporal path, temporal connectivity]\label{def:temporal}
 A \emph{temporal graph} $(G,\lambda)$ consists of a digraph $G=(V,E)$ and a label function
 $\lambda:E\to 2^{\mathbb{N}}$, where $\lambda(e)$ is the set of times at which $e$ may be entered. A
 \emph{temporal path} from $u$ to $v$ is a sequence $(e_1,t_1),\dots,(e_k,t_k)$ in which $e_1\cdots e_k$
@@ -211,13 +217,19 @@ $C_1,\dots,C_K$---an ordering in which every edge between two distinct component
 to a later one. An edge of $\ESF$ whose endpoints lie in \emph{different} components is a \emph{cross
 edge}; every other edge lies inside a single component.
 
-\paragraph{Rooted trees.} Inside each component $C_i$ we pick a center $h_i$ and build, using the
-travel times $w$, two shortest-path arborescences rooted at $h_i$: the reverse \emph{in-tree} $\Tin$
-(edges oriented towards $h_i$), in which $\din(x)$ is the weighted distance from $x$ to $h_i$, and the
-forward \emph{out-tree} $\Tout$ (edges oriented away from $h_i$), in which $\dout(x)$ is the weighted
-distance from $h_i$ to $x$. Let $\Din=\max_x\din(x)$ and $\Dout=\max_x\dout(x)$ be the in- and
-out-radii of $C_i$, and set the cross-edge label $t_{\mathrm{cross}}(x,y)=T_i+\Din+\Dout$ for a cross
-edge leaving $x\in C_i$.
+\paragraph{Rooted trees.} Fix a component $C_i$ and let $\ESF[C_i]$ be the subgraph of $\ESF$ induced
+on the vertices of $C_i$; being an SCC of $\ESF$, it is strongly connected. We pick a center
+$h_i\in C_i$ and define the weighted shortest-path distances \emph{inside $\ESF[C_i]$}: $\din(x)$ from
+$x$ to $h_i$, and $\dout(x)$ from $h_i$ to $x$. Because $\ESF[C_i]$ is strongly connected, every
+vertex both reaches and is reached from $h_i$ using only edges of $\ESF$, so these distances are
+finite and admit shortest-path arborescences that \emph{span} $C_i$ and consist solely of $\ESF$
+edges: the reverse \emph{in-tree} $\Tin$ (edges oriented towards $h_i$, one shortest $x$--$h_i$ path
+per vertex) and the forward \emph{out-tree} $\Tout$ (edges oriented away from $h_i$). By optimal
+substructure, every in-tree edge $(x,x')$ satisfies $\din(x)=w(x,x')+\din(x')$ and every out-tree edge
+$(y,y')$ satisfies $\dout(y')=\dout(y)+w(y,y')$; these are exactly the recurrences invoked in
+Lemma~\ref{lem:intra}, and since both trees lie in $\ESF$ every canonical route uses only labelled
+edges. Let $\Din=\max_x\din(x)$ and $\Dout=\max_x\dout(x)$ be the in- and out-radii of $C_i$, and set
+the cross-edge label $t_{\mathrm{cross}}(x,y)=T_i+\Din+\Dout$ for a cross edge leaving $x\in C_i$.
 
 \paragraph{Base times.} Each component receives a \emph{base time} $T_i$, computed by a dynamic
 program over the topological order. We set $T_1=0$ and, for $i\ge 2$,
@@ -232,20 +244,20 @@ dominate the arrival time of every cross edge that enters $C_i$; property (b) is
 Lemma~\ref{lem:cross}.
 
 \paragraph{Labels.} Finally each edge $e=(x,y)$, with $x\in C_i$, is labelled according to its role:
-\[
-  t_{\mathrm{in}}(e)=T_i+\Din-\din(x)\ \ (e\in\Tin),\qquad
-  t_{\mathrm{out}}(e)=T_i+\Din+\dout(x)\ \ (e\in\Tout),\qquad
-  t_{\mathrm{cross}}(e)=T_i+\Din+\Dout\ \ (e\ \text{a cross edge}).
-\]
+\begin{itemize}[topsep=2pt,itemsep=3pt]
+  \item if $e\in\Tin$ (an in-tree edge):\quad $t_{\mathrm{in}}(e)=T_i+\Din-\din(x)$;
+  \item if $e\in\Tout$ (an out-tree edge):\quad $t_{\mathrm{out}}(e)=T_i+\Din+\dout(x)$;
+  \item if $e$ is a cross edge:\quad $t_{\mathrm{cross}}(e)=T_i+\Din+\Dout$.
+\end{itemize}
 
-\begin{algorithm}[t]
+\begin{algorithm}[H]
 \caption{Global Dual-Label Construction}
 \label{alg:duallabels}
 \begin{algorithmic}[1]
 \Function{Assign-Dual-Labels}{$\ESF,w$}
   \State contract the SCCs of $\ESF$ into a DAG; list the components $C_1,\dots,C_K$ in topological order.
   \For{each component $C_i$}
-     \State pick a center $h_i$; build the in-tree $\Tin$ (depths $\din$) and out-tree $\Tout$ (depths $\dout$);
+     \State pick a center $h_i$; build, within $\ESF[C_i]$, the in-tree $\Tin$ (depths $\din$) and out-tree $\Tout$ (depths $\dout$);
      \State $\Din\gets\max_x\din(x)$;\quad $\Dout\gets\max_x\dout(x)$.
   \EndFor
   \For{$i=1,\dots,K$}
@@ -473,9 +485,12 @@ flow term grows; the additive $n^{2/3}$ is the price of building the backbone at
 \subsection{Balancing the bounds and the final ratio}
 %--------------------------------------------------------------------
 
-Adding \eqref{eq:sp} and \eqref{eq:sf}, the overall ratio is
+For a fixed threshold $\theta$, let $\mathrm{TotalRatio}(\theta)$ denote the upper bound our analysis
+proves on the approximation ratio $\ALG/\OPT=(\ALGSP+\ALGSF)/\OPT$ achieved by
+Algorithm~\ref{alg:dualtrack} with that $\theta$. Adding the SP bound~\eqref{eq:sp} and the SF
+bound~\eqref{eq:sf} gives
 \begin{equation}\label{eq:total}
-  \mathrm{TotalRatio}(\theta)
+  \frac{\ALG}{\OPT}\;\le\;\mathrm{TotalRatio}(\theta)
   \;=\; O\!\Big(\tfrac1\theta\Big)
   \;+\; O\!\big(h\theta\,n^{2/3}\big)
   \;+\; O\!\big(n^{2/3}\big).
@@ -550,11 +565,6 @@ Forest approximation.
 P.~Berman, A.~Bhattacharyya, K.~Makarychev, S.~Raskhodnikova, and G.~Yaroslavtsev.
 \newblock Approximation algorithms for spanner problems and Directed Steiner Forest.
 \newblock \emph{Information and Computation}, 222:93--107, 2013.
-
-\bibitem{CDO25}
-[Carnevale et al.].
-\newblock Minimum Aged Labelling.
-\newblock 2025. \emph{(Reference details to be completed.)}
 
 \end{thebibliography}
 

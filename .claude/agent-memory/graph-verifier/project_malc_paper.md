@@ -1,0 +1,26 @@
+---
+name: project-malc-paper
+description: MAL-C dual-track routing/labelling paper (mal_c_simplified_en.tex) — reviewed defects and counterexamples
+metadata:
+  type: project
+---
+
+Paper: `/home/nsdlab/student/114/114753109/paper/mal_c_simplified_en.tex`. MAL-C = Minimum Aged Labelling with Capacity. Dual-track: SP for integer/leftover flow, DSF backbone for fractional flow consolidated via Assign-Dual-Labels. Claimed ratio O(√h n^{1/3}+n^{2/3}).
+
+**Why:** User wants hostile correctness review of algorithm + proofs + approximation analysis.
+
+**How to apply:** Key fatal-defect candidates found:
+- **Shortest-path arborescence existence inside SCC (FATAL):** in-tree/out-tree built with travel times w must be SPANNING arborescences within E_SF, but E_SF (a DSF *approximation*) restricted to an SCC need not contain a directed spanning tree to/from an arbitrary center h_i. Strong connectivity of the contracted SCC does NOT guarantee the sub-edges in E_SF form spanning in/out trees rooted at h_i; canonical route may use edges not in E_SF.
+- **OPT_frac not a valid lower bound:** OPT_frac = Σ dem·len(SP) is defined as a *cost* (sum over shortest-path edges of un-rounded flow). But real OPT rounds up per (edge,time). Claim OPT≥OPT_frac needs that fractional relaxation lower-bounds rounded objective AND that shortest paths are optimal routing for the relaxation — plausible but SP-forcing in the relaxation is an assumption, and OPT_frac counts each unit flow×path-length which can EXCEED true fractional optimum if consolidation across demands reduces (edge,time) load. Actually direction matters: need OPT ≥ OPT_frac; since removing round-up only lowers cost and SP minimizes path length, OPT_frac ≤ OPT holds only if OPT also must pay ≥ flow·pathlen — true because each unit must traverse ≥ len(SP) edges and round-up ≥ actual flow. Considered OK.
+- **len(SP) integer-flow bound eq (7):** Σ d_I·len(SP) ≤ OPT_frac fine.
+- **Lemma 2 Case "a reached via in-tree":** canonical route always exits via out-tree to cross tail, so in-tree-arrival case is vacuous/redundant but harmless.
+- Two-label claim: cross vs tree edge mutual exclusivity assumed; a cross edge is between components so cannot be a tree edge (trees are intra-component) — OK. But an intra edge could be in-tree in C_i AND also... only one component, fine.
+- **All three temporal claims collapse to the same root gap:** (a) Lemma 2 needs cross-tail a to have d_out(a) defined (a on out-tree); (b) Thm induction needs every entry node q on in-tree with d_in(q) defined; (c) Lemma 1 needs both u,v on the two trees. All require the two shortest-path arborescences to be SPANNING *using only E_SF edges*. This is the single FATAL defect.
+- **Approximation algebra all CHECKS OUT (verified by hand):** theta*=1/(√h n^{1/3}); at opt both theta-terms=√h n^{1/3}; crossover h=n^{2/3}; theta*<1 essentially always. Remark on infrastructure term 2|E_SF| retention is correct and honest. Do NOT flag these as errors.
+- **OPT>=OPT_frac direction OK** (round-up>=actual, each unit traverses >=len(SP) edges). **OPT>=OPT_SF OK** (feasible soln's support contains a DSF). eq(7) integer bound, eq(9) x/theta>1 bound both fine.
+- Minor/non-fatal writeup gaps to still mention: Lemma 2 Case-2 (a via in-tree) is vacuous under canonical route (exit always via out-tree) — redundant not wrong; w:E->N allows w(e)=0 self-loops/zero-weight edges, unaddressed but harmless; Route-SP induced labels differ per demand on shared edges — SP analysis assumes worst-case no-sharing so it's a safe over-count, fine but under-explained.
+
+Round 1 verdict: FAIL — single fatal defect = spanning-arborescence-within-E_SF gap (Rooted-trees paragraph + Lemmas 1,2 + Thm temporal). Everything else (approx analysis, lower bounds, two-label counting) is sound.
+
+**Round 2 (2026-07-25): PASS.** BUG #1 fully fixed. Author now defines E_SF[C_i]=induced subgraph of E_SF on C_i's vertices and argues it is strongly connected. This is a VALID standard theorem: for an SCC, all mutual-reachability paths stay inside the vertex set (any detour vertex is itself mutually reachable ⇒ in the SCC by maximality), so induced subgraph is strongly connected using only E_SF edges ⇒ in/out shortest-path arborescences span C_i with E_SF edges only. Recurrences d_in(x)=w+d_in(x'), d_out(y')=d_out(y)+w now rigorously grounded. Re-verified all new changes: Route-SP ℓ_k formula + a→b→c example (no off-by-one), TotalRatio(θ) def matches eq:sp+eq:sf three-term-for-three-term, θ* algebra, no dangling CDO25 refs (only BBMRY13 remains, defined).
+Remaining NON-FATAL writeup nits (do not affect correctness): (1) Thm1 induction invariant stated as "entry reached by T_{i_l}" but source base case only gives arrival AT its in-tree label (≥T_{i_1}); real working invariant is "arrival ≤ entry's in-tree departure label" — machine still valid since Lemma1's true precondition is met everywhere. (2) Lemma2 in-tree-arrival case for cross-tail a is vacuous (canonical route exits via out-tree) — redundant not wrong. (3) |R_i|≤|E_SF| in eq:flowterm ignores possible edge reuse in ascent+descent, at most a constant factor, O() absorbs. (4) w:E→ℕ may include w=0; harmless (equalities stay time-respecting, +1 in base-time DP guarantees inter-component progress).

@@ -1,0 +1,1 @@
+- [MAL-C paper](project_malc_paper.md) — hostile-reviewed the MAL-C dual-track routing/labelling paper; key defect classes and counterexamples
