@@ -1,0 +1,9 @@
+1. [完成] 依 CM03-1.pdf 的定義，將 temporal path 的定義寫入 3.1 節 Definition 1，
+   格式比照 CM03：以序列 (e_1,t_1),...,(e_ℓ,t_ℓ) 表示，並列出兩條件——
+     - 路徑連通性 (Path connectivity)
+     - 時間遞增性 (Time monotonicity)：t_i ∈ λ(e_i) 且 t_{i+1} ≥ t_i + w(e_i)
+   另附說明：單位權 w≡1 時退化為嚴格遞增 t_1 < t_2 < ... < t_ℓ。
+   註：temporal graph 僅保留一句 lead-in；temporal connectivity 保留一句
+       （Theorem 1 會用到「temporally connected」一詞，故留最小定義，如需移除可再說）。
+
+2.

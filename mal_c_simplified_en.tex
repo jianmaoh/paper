@@ -90,14 +90,15 @@ delivered while as few trucks as possible are dispatched.
 
 \paragraph{Output.}
 For every edge $e\in E$ a set of departure times---the \emph{label set}
-$\lambda(e)\subseteq\mathbb{N}$---together with, for every demand, a routing of its freight from source
-to destination. We write $f_i(e,t)\in\mathbb{R}_{\ge0}$ for the flow of demand $i$ that enters edge $e$
+$\lambda(e)\subseteq\mathbb{Z}_{\ge 0}$---together with, for every demand, a routing of its freight
+from source to destination. We write $f_i(e,t)\in\mathbb{R}_{\ge0}$ for the flow of demand $i$ that enters edge $e$
 at time $t$ (this flow reaches the head of $e$ at time $t+w(e)$). A feasible output satisfies:
 \begin{enumerate}[topsep=2pt,itemsep=1pt,label=(\roman*)]
   \item \emph{Flow conservation:} for each demand $d_i$ the routing carries $\dem(d_i)$ units from
         $\src(d_i)$ to $\dst(d_i)$, respecting travel times.
-  \item \emph{Label--flow consistency:} for all $e\in E$, $t\in\mathbb{N}$ and $i\in\{1,\dots,h\}$, if
-        $f_i(e,t)>0$ then $t\in\lambda(e)$; that is, flow may leave an edge only at one of its labels.
+  \item \emph{Label--flow consistency:} for all $e\in E$, $t\in\mathbb{Z}_{\ge 0}$ and
+        $i\in\{1,\dots,h\}$, if $f_i(e,t)>0$ then $t\in\lambda(e)$; that is, flow may leave an edge
+        only at one of its labels.
 \end{enumerate}
 
 \paragraph{Objective.}
@@ -196,17 +197,27 @@ freight resting at a node.
 
 We use the following standard temporal-network vocabulary, specialised to edge-weighted travel times.
 
-\begin{definition}[Temporal graph, temporal path, temporal connectivity]\label{def:temporal}
-A \emph{temporal graph} $(G,\lambda)$ consists of a digraph $G=(V,E)$ and a label function
-$\lambda:E\to 2^{\mathbb{N}}$, where $\lambda(e)$ is the set of times at which $e$ may be entered. A
-\emph{temporal path} from $u$ to $v$ is a sequence $(e_1,t_1),\dots,(e_k,t_k)$ in which $e_1\cdots e_k$
-is a $u$--$v$ walk in $G$, each $t_j\in\lambda(e_j)$, and, writing $e_j=(z_{j-1},z_j)$, the timestamps
-respect travel time:
+\begin{definition}[Temporal path]\label{def:temporal}
+Let $(G,\lambda)$ be a temporal graph: a digraph $G=(V,E)$ together with a label function
+$\lambda:E\to 2^{\mathbb{Z}_{\ge 0}}$, where $\lambda(e)\subseteq\mathbb{Z}_{\ge 0}=\{0,1,2,\dots\}$ is
+the set of available times (labels) of edge $e$. A \emph{temporal path} from $u$ to $v$ is a sequence
 \[
-  t_{j+1}\;\ge\;t_j+w(e_j)\qquad(1\le j<k).
+  (e_1,t_1),(e_2,t_2),\dots,(e_\ell,t_\ell)
 \]
-(The freight reaches $z_j$ at time $t_j+w(e_j)$ and may wait there until $t_{j+1}$.) The temporal
-graph is \emph{temporally connected} if every ordered pair of vertices is joined by a temporal path.
+subject to the two conditions
+\begin{itemize}[topsep=2pt,itemsep=2pt]
+  \item \emph{Path connectivity:} each $e_i\in E$, and $e_1e_2\cdots e_\ell$ is a walk from $u$ to $v$
+        in $G$;
+  \item \emph{Time monotonicity:} $t_i\in\lambda(e_i)$ for every $i$, and, writing $e_i=(v_i,v_{i+1})$,
+        \[
+          t_{i+1}\;\ge\;t_i+w(e_i)\qquad(1\le i<\ell).
+        \]
+\end{itemize}
+The monotonicity condition encodes travel time: departing $v_i$ at $t_i$, the freight reaches
+$v_{i+1}$ at time $t_i+w(e_i)$, so the next departure $t_{i+1}$ must be no earlier than that arrival.
+(In the classical unit-time case $w\equiv 1$ it reduces to the strict increase
+$t_1<t_2<\dots<t_\ell$.) We call $(G,\lambda)$ \emph{temporally connected} on a set of vertex pairs if
+every such pair admits a temporal path.
 \end{definition}
 
 We now describe \textsc{Assign-Dual-Labels} (Algorithm~\ref{alg:duallabels}) in four stages.
@@ -326,13 +337,47 @@ hand-off into $C_j$ is time-respecting.
 \end{lemma}
 
 \begin{proof}
-Within $C_i$ the freight reaches $a$ either by descending the out-tree, at time $T_i+\Din+\dout(a)$, or
-along the in-tree, at time $T_i+\Din-\din(a)$; in both cases the arrival is at most
-$T_i+\Din+\Dout=t_{\mathrm{cross}}(c)$, since $\dout(a)\le\Dout$ and $-\din(a)\le 0\le\Dout$. So the
-freight (waiting if necessary) departs $c$ at $t_{\mathrm{cross}}(c)$ and arrives at $b$ at
-$t_{\mathrm{cross}}(c)+w(c)\le T_j$, by the choice of $T_j$ in~\eqref{eq:basetime}. As the in-tree
-departure at $b$ is $T_j+D^{(j)}_{\mathrm{in}}-\din(b)\ge T_j$, the freight waits at $b$ and continues.
+By the canonical route, $a$ is the exit node of $C_i$, reached by descending the out-tree; hence by
+the descent in Lemma~\ref{lem:intra} the freight arrives at $a$ at time
+\[
+  T_i+\Din+\dout(a)\;\le\;T_i+\Din+\Dout=t_{\mathrm{cross}}(c),
+\]
+using $\dout(a)\le\Dout$. Since $t_{\mathrm{cross}}(c)$ is the only label of $c$, the freight (waiting
+if necessary) departs $c$ at $t_{\mathrm{cross}}(c)$ and arrives at $b$ at $t_{\mathrm{cross}}(c)+w(c)$.
+By the choice of $T_j$ in~\eqref{eq:basetime}, $T_j\ge t_{\mathrm{cross}}(c)+w(c)$, so the freight
+reaches $b$ by $T_j$. Finally the in-tree departure at $b$ is $T_j+D^{(j)}_{\mathrm{in}}-\din(b)\ge T_j$,
+so the freight waits at $b$ and continues up $C_j$'s in-tree; the hand-off is time-respecting.
 \end{proof}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=Stealth, thick, font=\small]
+    % C_i and its out-tree descent to the exit a
+    \draw (0,0) ellipse (2.4cm and 1.9cm);
+    \node at (0,2.2) {$C_i$};
+    \node (hi) at (-0.8,1.0) {$h_i$};
+    \node (a)  at (1.5,-0.7) {$a$};
+    \draw[->] (hi) to[bend left=25]
+        node[right=1pt,font=\scriptsize,align=left]{out-tree\\descent} (a);
+    % C_j and its in-tree ascent from the entry b
+    \draw (6.6,0) ellipse (2.4cm and 1.9cm);
+    \node at (6.6,2.2) {$C_j$};
+    \node (b)  at (5.1,-0.7) {$b$};
+    \node (hj) at (7.4,1.0) {$h_j$};
+    \draw[->] (b) to[bend left=25]
+        node[left=1pt,font=\scriptsize,align=right]{in-tree\\ascent} (hj);
+    % cross edge
+    \draw[->] (a) -- node[below=1pt,font=\scriptsize]
+        {$t_{\mathrm{cross}}=T_i+\Din+\Dout$} (b);
+    \node[font=\scriptsize] at (1.5,-1.35) {arrive $\le t_{\mathrm{cross}}$};
+    \node[font=\scriptsize] at (5.1,-1.35) {arrive $\le T_j$};
+\end{tikzpicture}
+\caption{Cross edge $c=(a,b)$, $a\in C_i$, $b\in C_j$ (Lemma~\ref{lem:cross}). Descending $C_i$'s
+out-tree, the freight reaches the exit $a$ by $t_{\mathrm{cross}}=T_i+\Din+\Dout$; it departs the
+single-labelled edge $c$ at $t_{\mathrm{cross}}$ and reaches the entry $b$ of $C_j$ by
+$T_j\ge t_{\mathrm{cross}}+w(c)$, then waits for $C_j$'s in-tree schedule ($\ge T_j$) and continues.}
+\label{fig:cross}
+\end{figure}
 
 \begin{theorem}[The labelled backbone is temporally connected]\label{thm:temporal}
 Under Assumption~\ref{ass:wait}, for every terminal pair $(u,v)$ joined through the backbone---within
