@@ -349,25 +349,23 @@ so the freight waits at $b$ and continues up $C_j$'s in-tree; the hand-off is ti
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[>=Stealth, thick, font=\small]
-    % C_i and its out-tree descent to the exit a
-    \draw (0,0) ellipse (2.4cm and 1.9cm);
-    \node at (0,2.2) {$C_i$};
-    \node (hi) at (-0.8,1.0) {$h_i$};
-    \node (a)  at (1.5,-0.7) {$a$};
-    \draw[->] (hi) to[bend left=25]
-        node[right=10pt,font=\scriptsize,align=left]{out-tree\\descent} (a);
-    % C_j and its in-tree ascent from the entry b
-    \draw (6.6,0) ellipse (2.4cm and 1.9cm);
-    \node at (6.6,2.2) {$C_j$};
-    \node (b)  at (5.1,-0.7) {$b$};
-    \node (hj) at (7.4,1.0) {$h_j$};
-    \draw[->] (b) to[bend left=25]
-        node[left=10pt,font=\scriptsize,align=right]{in-tree\\ascent} (hj);
-    % cross edge
-    \draw[->] (a) -- node[below=1pt,font=\scriptsize]
+    % C_i (circle) with exit node a reached along the out-tree
+    \draw (0,0) circle (1.4cm);
+    \node at (0,1.75) {$C_i$};
+    \node (hi) at (-0.5,0.55) {$h_i$};
+    \node (a)  at (0.7,-0.55) {$a$};
+    \draw[->] (hi) -- (a);
+    % C_j (circle) with entry node b feeding the in-tree
+    \draw (7,0) circle (1.4cm);
+    \node at (7,1.75) {$C_j$};
+    \node (b)  at (6.3,-0.55) {$b$};
+    \node (hj) at (7.5,0.55) {$h_j$};
+    \draw[->] (b) -- (hj);
+    % cross edge (long, well inside the wide gap so its label is not clipped)
+    \draw[->] (a) to[bend right=14] node[midway,below=2pt,font=\scriptsize]
         {$t_{\mathrm{cross}}=T_i+\Din+\Dout$} (b);
-    \node[font=\scriptsize] at (0.5,-1.35) {arrive $\le t_{\mathrm{cross}}$};
-    \node[font=\scriptsize] at (6.0,-1.35) {arrive $\le T_j$};
+    \node[font=\scriptsize] at (0.7,-1.85) {arrive $\le t_{\mathrm{cross}}$};
+    \node[font=\scriptsize] at (6.3,-1.85) {arrive $\le T_j$};
 \end{tikzpicture}
 \caption{Cross edge $c=(a,b)$, $a\in C_i$, $b\in C_j$ (Lemma~\ref{lem:cross}). Descending $C_i$'s
 out-tree, the freight reaches the exit $a$ by $t_{\mathrm{cross}}=T_i+\Din+\Dout$; it departs the
@@ -411,6 +409,114 @@ demand's canonical route is a temporal path that leaves $e$ exactly on the label
 it uses $e$, so all demands using $e$ in the same role depart together; the trucks on $e$ therefore
 number at most $\lceil f_{t_1}(e)\rceil+\lceil f_{t_2}(e)\rceil$, i.e.\ at most two round-ups.
 \end{proof}
+
+\subsection{A worked example: assigning the labels}\label{sec:example}
+
+We now give an example illustrating how \textsc{Assign-Dual-Labels} assigns the labels. Let $C_1$ and
+$C_2$ be two strongly connected components (SCCs) of the backbone $\ESF$; for concreteness we take
+each to be a small directed triangle and focus only on how the labels arise:
+\[
+  C_1:\ a\to b\to c\to a,\qquad C_2:\ p\to q\to r\to p,
+\]
+joined by a single cross edge $c\to q$, with travel times
+\[
+  w(a,b)=2,\ w(b,c)=1,\ w(c,a)=3;\quad
+  w(p,q)=w(q,r)=w(r,p)=1;\quad w(c,q)=2 .
+\]
+Contracting each triangle to a point leaves the two-vertex DAG $C_1\to C_2$; hence the topological
+order is $C_1\prec C_2$ and $c\to q$ is the only cross edge (Figure~\ref{fig:example}).
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[>=Stealth, thick, font=\small, every node/.style={inner sep=1.5pt}]
+  % --- C_1 (larger circle, compact triangle: labels sit well inside) ---
+  \draw (0,0) circle (1.9cm);
+  \node at (0,2.3) {$C_1$};
+  \node (a) at (0,1.0)      {$a$};
+  \node (b) at (-0.9,-0.55) {$b$};
+  \node (c) at (0.9,-0.55)  {$c$};
+  \draw[->] (a) -- node[left=1pt,font=\scriptsize]{$4$}        (b);
+  \draw[->] (b) -- node[below=1pt,font=\scriptsize]{$\{0,6\}$} (c);
+  \draw[->] (c) -- node[right=1pt,font=\scriptsize]{$1$}       (a);
+  % --- C_2 ---
+  \draw (7,0) circle (1.9cm);
+  \node at (7,2.3) {$C_2$};
+  \node (p) at (7,1.0)      {$p$};
+  \node (q) at (6.1,-0.55)  {$q$};
+  \node (r) at (7.9,-0.55)  {$r$};
+  \draw[->] (p) -- node[left=1pt,font=\scriptsize]{$11$}        (q);
+  \draw[->] (q) -- node[below=1pt,font=\scriptsize]{$\{9,12\}$} (r);
+  \draw[->] (r) -- node[right=1pt,font=\scriptsize]{$10$}       (p);
+  % --- cross edge (bent down, clear of the collinear triangle bases and of both circles) ---
+  \draw[->] (c) to[bend right=28] node[midway,below=1pt,font=\scriptsize]{$7$} (q);
+  % --- topological order (x=3.5 is always between the two circles) ---
+  \node[font=\scriptsize] at (3.5,0.5) {$C_1\prec C_2$};
+\end{tikzpicture}
+\caption{The worked example: components $C_1$ (center $h_1=a$) and $C_2$ (center $h_2=p$), each a
+directed triangle, joined by the cross edge $c\to q$. The number(s) on each edge are its assigned
+departure-time \emph{label(s)}, as computed below; an edge lying on both trees, such as $(b,c)$ or
+$(q,r)$, carries two labels, while the cross edge $c\to q$ carries $t_{\mathrm{cross}}=7$. Contraction
+gives the topological order $C_1\prec C_2$. (Travel times $w$ are listed in the text.)}
+\label{fig:example}
+\end{figure}
+
+\paragraph{Component $C_1$ ($T_1=0$).} Take the center $h_1=a$. The shortest-path trees rooted at $a$
+inside $C_1$ are the in-tree $b\to c\to a$ (with $\din(a)=0$, $\din(c)=3$, $\din(b)=4$) and the
+out-tree $a\to b\to c$ (with $\dout(a)=0$, $\dout(b)=2$, $\dout(c)=3$), so $D^{(1)}_{\mathrm{in}}=4$ and
+$D^{(1)}_{\mathrm{out}}=3$. Applying $t_{\mathrm{in}}=T_1+D^{(1)}_{\mathrm{in}}-\din(x)$ and
+$t_{\mathrm{out}}=T_1+D^{(1)}_{\mathrm{in}}+\dout(x)$ to each edge:
+\[
+  \begin{array}{l@{\qquad}l}
+    \text{in-tree }(b,c):\ t_{\mathrm{in}}=0+4-4=0,  & \text{in-tree }(c,a):\ t_{\mathrm{in}}=0+4-3=1,\\[2pt]
+    \text{out-tree }(a,b):\ t_{\mathrm{out}}=0+4+0=4, & \text{out-tree }(b,c):\ t_{\mathrm{out}}=0+4+2=6.
+  \end{array}
+\]
+Edge $(b,c)$ lies on \emph{both} trees, so it carries the two labels $\{0,6\}$ (illustrating
+Theorem~\ref{thm:twolabels}); every other edge carries one.
+
+\emph{An intra-component demand $c\to b$.} Its canonical route climbs the in-tree to the center and
+then descends the out-tree, i.e.\ $c\to a\to b$, giving the schedule (edge\,@\,departure time)
+\[
+  (c,a)\,@\,1\ \longrightarrow\ (a,b)\,@\,4,
+\]
+which delivers the freight to the center $a$ at time $T_1+D^{(1)}_{\mathrm{in}}=4$ and to $b$ at time
+$T_1+D^{(1)}_{\mathrm{in}}+\dout(b)=6$. Each departure is at least the previous arrival, so it is a
+temporal path, exactly as Lemma~\ref{lem:intra} predicts.
+
+\paragraph{The cross edge and the base time $T_2$.} Edge $c\to q$ receives the single label
+\[
+  t_{\mathrm{cross}}(c,q)=T_1+D^{(1)}_{\mathrm{in}}+D^{(1)}_{\mathrm{out}}=0+4+3=7,
+\]
+the latest timestamp $C_1$ ever issues. The base-time recurrence~\eqref{eq:basetime} then gives
+\[
+  T_2=\max\{\,T_1+1,\ t_{\mathrm{cross}}(c,q)+w(c,q)\,\}=\max\{\,1,\ 7+2\,\}=9,
+\]
+so $C_2$ opens late enough to catch whatever arrives through $c\to q$.
+
+\paragraph{Component $C_2$ ($T_2=9$).} With center $h_2=p$, the in-tree $q\to r\to p$ has
+$\din(p)=0$, $\din(r)=1$, $\din(q)=2$ and the out-tree $p\to q\to r$ has $\dout(p)=0$, $\dout(q)=1$,
+$\dout(r)=2$, so $D^{(2)}_{\mathrm{in}}=D^{(2)}_{\mathrm{out}}=2$ and
+\[
+  \begin{array}{l@{\qquad}l}
+    \text{in-tree }(q,r):\ t_{\mathrm{in}}=9+2-2=9,   & \text{in-tree }(r,p):\ t_{\mathrm{in}}=9+2-1=10,\\[2pt]
+    \text{out-tree }(p,q):\ t_{\mathrm{out}}=9+2+0=11, & \text{out-tree }(q,r):\ t_{\mathrm{out}}=9+2+1=12.
+  \end{array}
+\]
+Again $(q,r)$ carries two labels, $\{9,12\}$.
+
+\emph{An inter-component demand $a\to r$.} Its canonical route descends $C_1$'s out-tree to the exit
+$c$, crosses to $q$, then climbs $C_2$'s in-tree to $p$ and descends the out-tree to $r$:
+\[
+  a\to b\to c\ \xrightarrow{\ \mathrm{cross}\ }\ q\to r\to p\to q\to r,
+\]
+with schedule
+\[
+  (a,b)\,@\,4\ \to\ (b,c)\,@\,6\ \to\ (c,q)\,@\,7\ \to\ (q,r)\,@\,9\ \to\ (r,p)\,@\,10\ \to\ (p,q)\,@\,11\ \to\ (q,r)\,@\,12,
+\]
+arriving at $r$ at time $13$. Every departure is at least the preceding arrival, so the whole route is
+a temporal path (Theorem~\ref{thm:temporal}). The cross label $7$ and the base time $T_2=9$ dovetail:
+the freight leaves $C_1$ at its latest time $7$ and reaches $q$ at $7+w(c,q)=9=T_2$, exactly when
+$C_2$'s schedule opens.
 
 %====================================================================
 \section{Approximation-Ratio Analysis}\label{sec:analysis}
