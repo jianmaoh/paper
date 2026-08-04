@@ -47,7 +47,7 @@
 \DeclareMathOperator{\SP}{SP}
 
 \title{\bf Minimum Aged Labelling with Capacity Constraints:\\[2pt]
-A $\theta$-Threshold Dual-Track Flow-Splitting Routing Algorithm and Its Analysis}
+A $\theta$-Threshold Dual-Track Flow-Splitting Routing Algorithm }
 \author{}
 \date{}
 
@@ -75,10 +75,7 @@ and $h$ is the number of demands.
 %====================================================================
 
 We study the \emph{Minimum Aged Labelling with Capacity constraints} (MAL-C) problem, a temporal
-network-design problem that augments Minimum Aged Labelling with truck-capacity constraints. In a
-temporal (time-varying) network an edge may be traversed only at a prescribed set of \emph{departure
-times}; the task is to choose these times and a routing of all freight so that every demand is
-delivered while as few trucks as possible are dispatched.
+network-design problem that augments Minimum Aged Labelling with truck-capacity constraints. 
 
 \paragraph{Input.}
 \begin{itemize}[topsep=2pt,itemsep=1pt]
@@ -358,19 +355,19 @@ so the freight waits at $b$ and continues up $C_j$'s in-tree; the hand-off is ti
     \node (hi) at (-0.8,1.0) {$h_i$};
     \node (a)  at (1.5,-0.7) {$a$};
     \draw[->] (hi) to[bend left=25]
-        node[right=1pt,font=\scriptsize,align=left]{out-tree\\descent} (a);
+        node[right=10pt,font=\scriptsize,align=left]{out-tree\\descent} (a);
     % C_j and its in-tree ascent from the entry b
     \draw (6.6,0) ellipse (2.4cm and 1.9cm);
     \node at (6.6,2.2) {$C_j$};
     \node (b)  at (5.1,-0.7) {$b$};
     \node (hj) at (7.4,1.0) {$h_j$};
     \draw[->] (b) to[bend left=25]
-        node[left=1pt,font=\scriptsize,align=right]{in-tree\\ascent} (hj);
+        node[left=10pt,font=\scriptsize,align=right]{in-tree\\ascent} (hj);
     % cross edge
     \draw[->] (a) -- node[below=1pt,font=\scriptsize]
         {$t_{\mathrm{cross}}=T_i+\Din+\Dout$} (b);
-    \node[font=\scriptsize] at (1.5,-1.35) {arrive $\le t_{\mathrm{cross}}$};
-    \node[font=\scriptsize] at (5.1,-1.35) {arrive $\le T_j$};
+    \node[font=\scriptsize] at (0.5,-1.35) {arrive $\le t_{\mathrm{cross}}$};
+    \node[font=\scriptsize] at (6.0,-1.35) {arrive $\le T_j$};
 \end{tikzpicture}
 \caption{Cross edge $c=(a,b)$, $a\in C_i$, $b\in C_j$ (Lemma~\ref{lem:cross}). Descending $C_i$'s
 out-tree, the freight reaches the exit $a$ by $t_{\mathrm{cross}}=T_i+\Din+\Dout$; it departs the
@@ -469,10 +466,6 @@ $x>\theta\Rightarrow 1<x/\theta$ from \eqref{eq:xtheta},
   =\frac1\theta\sum_{i:\,d_f>2\theta} x_i\,\len(\SP_i)
   \;\le\;\frac1\theta\,\OPTfrac ,
 \end{equation}
-where the last step uses $x_i\le\dem(d_i)$ and that the pieces $\{x_i\}$ form a sub-collection of the
-total flow, so $\sum x_i\len(\SP_i)\le\sum_i\dem(d_i)\len(\SP_i)=\OPTfrac$. (This is the corrected
-form of the bound: the relation to $\OPTfrac$ is an \emph{inequality}, not an equality, and the
-integer-flow contribution~\eqref{eq:spint} is accounted for separately.)
 
 Adding \eqref{eq:spint} and \eqref{eq:spfrac},
 \begin{equation}\label{eq:sp}
@@ -509,7 +502,7 @@ Summing \eqref{eq:peredge} over all backbone edges,
   \sum_{e\in\ESF}F_e=\sum_{i=1}^{h} s_i\,|R_i|
   \;\le\; 2\theta\sum_{i=1}^{h}|R_i|
   \;\le\; 2\theta\cdot h\cdot|\ESF|
-  \;=\; 2h\theta\,|\ESF| .
+  \;
 \end{equation}
 
 \paragraph{Infrastructure term.} Even an edge that carries only an infinitesimal flow must dispatch a
