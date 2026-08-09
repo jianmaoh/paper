@@ -107,9 +107,8 @@ path.
 
 \subsection{The Minimum Aged Labelling problem}\label{sec:mal}
 
-Minimum Aged Labelling (MAL), introduced by Carnevale et al., asks for the cheapest set of labels that
-keeps a temporal graph connected. In its basic form the travel time of every edge is one time unit,
-and there is an upper bound $a$ on the labels an edge may use.
+Minimum Aged Labelling (MAL), introduced by Carnevale et al.~\cite{CDO25}, asks for a labelling that
+uses as few labels as possible while making the graph temporally connected.
 
 \begin{problem}[Minimum Aged Labelling (MAL)]\label{prob:mal}
 \leavevmode
@@ -122,16 +121,13 @@ and there is an upper bound $a$ on the labels an edge may use.
 \end{description}
 \end{problem}
 
-\noindent Each label is one departure, so MAL minimizes the number of departures that keeps everyone
-reachable from everyone in time.
-
 \subsection{Minimum Aged Labelling with capacity constraints}\label{sec:malc}
 
-MAL charges one unit per label, implicitly assuming that a single departure suffices to carry whatever
-must cross an edge at that time. In practice demands are heterogeneous: the amount that must cross an
-edge at a given time may require several unit-capacity vehicles. \emph{Minimum Aged Labelling with
-Capacity constraints} (MAL-C) captures this by charging, for each (edge, time) pair, the number of
-vehicles its flow needs.
+In practice demands are heterogeneous: the amount that must cross an edge at a given time may require
+several unit-capacity vehicles. \emph{Minimum Aged Labelling with Capacity constraints} (MAL-C)
+captures this by charging each edge $e$, at each departure time $t$, for the number of unit-capacity
+vehicles needed to carry the flow that departs on $e$ at time $t$ (formally, the
+objective~\eqref{eq:objective}).
 
 The variant we study augments MAL with edge travel times $w$, a demand set with real-valued amounts,
 and the capacity objective; and it simplifies MAL in two ways: there is \emph{no} maximum-label bound
@@ -198,6 +194,12 @@ Given a directed graph with non-negative edge costs and a set of ordered \emph{t
 $\{(s_i,t_i)\}_{i=1}^{k}$, the \emph{Directed Steiner Forest} (DSF) problem asks for a minimum-cost
 subgraph that contains a directed $s_i\!\to\!t_i$ path for every $i$.
 \end{definition}
+
+\noindent With unit edge costs, minimizing cost means using as few edges as possible, so a DSF
+solution \emph{reuses} edges across many terminal pairs rather than giving each pair its own path.
+This small, shared edge set is exactly what lets the fractional flows of different demands consolidate
+onto common edges (and share vehicles); being small, it also keeps the backbone's own dispatch cost
+low (\S\ref{sec:ratio}).
 
 \noindent Berman, Bhattacharyya, Makarychev, Raskhodnikova and Yaroslavtsev~\cite{BBMRY13} give a
 polynomial-time $O(n^{2/3+\epsilon})$-approximation for DSF, for any fixed $\epsilon>0$; we use it as a
@@ -687,6 +689,11 @@ cost of the Directed Steiner Forest approximation.
 P.~Berman, A.~Bhattacharyya, K.~Makarychev, S.~Raskhodnikova, and G.~Yaroslavtsev.
 \newblock Approximation algorithms for spanner problems and Directed Steiner Forest.
 \newblock \emph{Information and Computation}, 222:93--107, 2013.
+
+\bibitem{CDO25}
+D.~Carnevale, G.~D'Angelo, and M.~Olsen.
+\newblock Approximating optimal labelings for temporal connectivity.
+\newblock In \emph{AAAI}, 2025.
 \end{thebibliography}
 
 \end{document}
