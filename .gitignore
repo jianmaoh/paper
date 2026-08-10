@@ -1,2 +1,5 @@
 token.txt
 
+# Locally-installed Claude Code skill (external; not part of the paper repo)
+.claude/skills/
+
