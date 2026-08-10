@@ -240,8 +240,10 @@ reverse \emph{in-tree} $\Tin$ (edges directed towards $h_i$) and the forward \em
 (edges directed away from $h_i$). Write $\Din=\max_{x\in C_i}\din(x)$ and $\Dout=\max_{x\in C_i}\dout(x)$ for the in- and
 out-radii of $C_i$. Being tree edges of shortest-path trees, they satisfy
 \begin{equation}\label{eq:treerec}
-  \din(x)=w(x,x')+\din(x')\ \ \text{for an in-tree edge }(x,x'),\qquad
-  \dout(y')=\dout(y)+w(y,y')\ \ \text{for an out-tree edge }(y,y').
+\begin{aligned}
+  \din(x)&=w(x,x')+\din(x') && \text{for an in-tree edge }(x,x'),\\
+  \dout(y')&=\dout(y)+w(y,y') && \text{for an out-tree edge }(y,y').
+\end{aligned}
 \end{equation}
 
 \paragraph{Base times (lines~5--6).} Each component gets a \emph{base time} $T_i$, computed by a
