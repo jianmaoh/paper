@@ -607,27 +607,23 @@ and~\eqref{eq:spfrac},
 \end{equation}
 
 \paragraph{Steiner-forest track.} Every demand injects at most $2\theta$ of flow into the backbone
-($d_f\le2\theta$ if $d_f\le2\theta$, else exactly $\theta$). Let demand $i$ route its backbone flow
-$s_i\le2\theta$ along its canonical route $R_i$. For a backbone edge $e$, let $f_{t_1}(e),f_{t_2}(e)$
-be the flows departing on its (at most two) labels, and put $F_e=f_{t_1}(e)+f_{t_2}(e)$, the total
-flow dispatched on $e$ across its labels. By Theorem~\ref{thm:twolabels} the vehicles on $e$ number
-$\lceil f_{t_1}(e)\rceil+\lceil f_{t_2}(e)\rceil\le F_e+2$; summing over all edges,
+(the whole of $d_f$ if $d_f\le2\theta$, otherwise exactly $\theta$). By Theorem~\ref{thm:twolabels}
+every backbone edge carries at most two labels; writing $f_{t_1}(e),f_{t_2}(e)$ for the flows on them
+and $F_e=f_{t_1}(e)+f_{t_2}(e)$ for the total flow on $e$, the number of vehicles dispatched on $e$ is
+$\lceil f_{t_1}(e)\rceil+\lceil f_{t_2}(e)\rceil\le F_e+2$. Summing over all backbone edges,
 \begin{equation}\label{eq:sfsum}
   \ALGSF \;\le\; \sum_{e\in\ESF}(F_e+2)
   \;=\;\underbrace{\sum_{e\in\ESF}F_e}_{\text{flow term}}\;+\;\underbrace{2\,|\ESF|}_{\text{infrastructure term}}.
 \end{equation}
-A canonical route traverses each backbone edge at most twice---at most once as an in-tree (ascent)
-edge and at most once as an out-tree (descent) edge, and each cross edge at most once---so
-$|R_i|\le 2|\ESF|$ (counting multiplicity). Since $\sum_{e}F_e$ totals the flow dispatched over all
-edges and labels, it equals $\sum_i s_i\,|R_i|$; hence
+Each label of $e$ carries the combined flow of the at most $h$ demands routed through it, each of size
+at most $2\theta$, so a single label carries at most $2h\theta$; as $e$ has at most two labels,
+$F_e\le 4h\theta$. Hence the flow term satisfies
 \begin{equation}\label{eq:flowterm}
-  \sum_{e\in\ESF}F_e=\sum_{i=1}^{h} s_i\,|R_i|
-  \;\le\; 2\theta\sum_{i=1}^{h}|R_i|
-  \;\le\; 2\theta\cdot h\cdot 2|\ESF| \;=\; 4h\theta\,|\ESF| .
+  \sum_{e\in\ESF}F_e\;\le\;4h\theta\,|\ESF| .
 \end{equation}
-The infrastructure term is unavoidable: an edge carrying any positive flow dispatches a whole vehicle
-per label, i.e.\ at most $2$ vehicles, giving $2|\ESF|$; this term is independent of $\theta$ and must
-not be dropped. Combining \eqref{eq:sfsum}--\eqref{eq:flowterm} with $|\ESF|\le O(n^{2/3})\OPTSF$,
+The infrastructure term is unavoidable: any edge with positive flow dispatches a whole vehicle per
+label, i.e.\ at most $2$, giving $2|\ESF|$; it is independent of $\theta$ and must not be dropped.
+Combining \eqref{eq:sfsum}--\eqref{eq:flowterm} with $|\ESF|\le O(n^{2/3})\OPTSF$,
 \begin{equation}\label{eq:sf}
   \boxed{\;\ALGSF \;\le\; (4h\theta+2)\,|\ESF|
   \;=\; O\!\bigl((h\theta+1)\,n^{2/3}\bigr)\cdot\OPTSF
