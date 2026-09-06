@@ -101,8 +101,8 @@ $(e_1,t_1),(e_2,t_2),\dots,(e_\ell,t_\ell)$ satisfying:
 The monotonicity condition encodes travel time: departing $v_i$ at $t_i$, the flow reaches $v_{i+1}$
 at time $t_i+w(e_i)$, so the next departure $t_{i+1}$ cannot precede that arrival (in the classical
 unit-time case $w\equiv 1$ it becomes the strict increase $t_1<t_2<\dots<t_\ell$). We say $(G,\lambda)$
-is \emph{temporally connected} on a set of ordered vertex pairs if each such pair admits a temporal
-path.
+is \emph{temporally connected} if, for every ordered pair of vertices $(u,v)$,
+  there is a temporal path from $u$ to $v$.
 \end{definition}
 
 \subsection{The Minimum Labelling problem}\label{sec:mal}
@@ -183,11 +183,8 @@ Concretely, we split each demand's amount into an integer part and a fractional 
 is sent along a shortest path. The fractional part is routed on a \emph{backbone}---a subgraph that
 connects every terminal pair---where flows from different demands merge. A threshold $\theta\in(0,1)$
 controls how much fractional flow is diverted to the backbone rather than left on shortest paths. The
-technical heart is to \emph{label} the backbone so that (i) merged flows can actually travel (the
-labelled backbone is temporally connected) and (ii) each edge carries only a few labels, so almost no
-rounding occurs.
-
-We build the backbone from a Directed Steiner Forest, which we now recall.
+main challenge is to \emph{label} the backbone so that (i) merged flows can actually travel (there is a temporal path between every terminal pair on the backbone) and (ii) each edge carries only a few labels, so almost no
+rounding occurs. We build the backbone from a Directed Steiner Forest.
 
 \begin{definition}[Directed Steiner Forest]\label{def:dsf}
 Given a directed graph with non-negative edge costs and a set of ordered \emph{terminal pairs}
@@ -202,8 +199,7 @@ onto common edges (and share vehicles); being small, it also keeps the backbone'
 low (\S\ref{sec:ratio}).
 
 \noindent Berman, Bhattacharyya, Makarychev, Raskhodnikova and Yaroslavtsev~\cite{BBMRY13} give a
-polynomial-time $O(n^{2/3+\epsilon})$-approximation for DSF, for any fixed $\epsilon>0$; we use it as a
-black box.
+polynomial-time $O(n^{2/3+\epsilon})$-approximation for DSF, for any fixed $\epsilon>0$; we employ this approximation algorithm for our algorithm design.
 
 %====================================================================
 \section{The Algorithm}\label{sec:algorithm}
@@ -449,13 +445,13 @@ With the algorithm fully described, we prove that it is correct---the labelled b
 demand travel (\S\ref{sec:tempconn})---that each backbone edge carries at most two labels
 (\S\ref{sec:twolabel}), and finally we bound its approximation ratio (\S\ref{sec:ratio}).
 
-\subsection{The labelled backbone is temporally connected}\label{sec:tempconn}
+\subsection{Temporal paths between all terminal pairs}\label{sec:tempconn}
 
 \begin{lemma}[Intra-component temporal path]\label{lem:intra}
 Let $u,v$ lie in the same component $C_i$, and suppose the flow is available at $u$ by time
 $T_i+\Din-\din(u)$. Then the canonical route $u\to\cdots\to h_i\to\cdots\to v$ is a temporal path: the
 flow departs each edge exactly at its label, reaches $h_i$ at time $T_i+\Din$, and reaches $v$ at time
-$T_i+\Din+\dout(v)$. In particular $u$ and $v$ are temporally connected, and the segment occupies the
+$T_i+\Din+\dout(v)$. In particular there is a temporal path from $u$ to $v$, and the segment occupies the
 time window $[\,T_i,\;T_i+\Din+\Dout\,]$.
 \end{lemma}
 
@@ -521,10 +517,10 @@ for $C_j$'s in-tree schedule ($\ge T_j$).}
 \label{fig:cross}
 \end{figure}
 
-\begin{theorem}[The labelled backbone is temporally connected]\label{thm:temporal}
+\begin{theorem}[A temporal path for every terminal pair]\label{thm:temporal}
 For every terminal pair $(u,v)$ joined through the backbone---within one component or across
-several---the canonical route $R(u,v)$ is a temporal path. Hence $(\GSF,\lambda)$ is temporally
-connected on all terminal pairs, and all backbone flows can be routed simultaneously.
+several---the canonical route $R(u,v)$ is a temporal path. Hence there is a temporal path between every terminal pair, and all backbone flows 
+  can be routed simultaneously.
 \end{theorem}
 
 \begin{proof}
@@ -620,8 +616,7 @@ $F_e\le 4h\theta$. Hence the flow term satisfies
 \begin{equation}\label{eq:flowterm}
   \sum_{e\in\ESF}F_e\;\le\;4h\theta\,|\ESF| .
 \end{equation}
-The infrastructure term is unavoidable: any edge with positive flow dispatches a whole vehicle per
-label, i.e.\ at most $2$, giving $2|\ESF|$; it is independent of $\theta$ and must not be dropped.
+
 Combining \eqref{eq:sfsum}--\eqref{eq:flowterm} with $|\ESF|\le O(n^{2/3})\OPTSF$,
 \begin{equation}\label{eq:sf}
   \boxed{\;\ALGSF \;\le\; (4h\theta+2)\,|\ESF|
@@ -676,8 +671,7 @@ bound~\eqref{eq:final}, whereas omitting it would incorrectly claim $O(\sqrt{h}\
 We gave a polynomial-time $O\!\bigl(\sqrt{h}\,n^{1/3}+n^{2/3}\bigr)$-approximation for MAL-C. The
 algorithm sends bulky integer flow along shortest paths and consolidates fractional flow onto a
 Directed Steiner Forest backbone, splitting the two at a threshold $\theta^\ast=1/(\sqrt{h}\,n^{1/3})$.
-The backbone labelling makes every terminal pair temporally connected while giving each edge at most
-two labels, so consolidated flows share vehicles and almost no rounding occurs. The bound is round-up
+The backbone labelling gives every terminal pair a temporal path while putting at most two labels on each edge, so consolidated flows share vehicles and almost no rounding occurs. The bound is round-up
 dominated when $h\ge n^{2/3}$ and backbone dominated otherwise, the latter reflecting the intrinsic
 cost of the Directed Steiner Forest approximation.
 
