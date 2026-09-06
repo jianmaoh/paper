@@ -72,8 +72,8 @@ vertices and $h$ the number of demands.
 %====================================================================
 
 In a \emph{temporal} (time-varying) network, an edge may be traversed only at certain prescribed
-times. This section fixes the temporal-graph vocabulary, recalls the Minimum Aged Labelling problem,
-and states the capacity-constrained variant we study.
+times. This section fixes the temporal-graph vocabulary, introduces the labelling problems for
+temporal connectivity, and states the capacity-constrained variant we study.
 
 \subsection{Temporal graphs and temporal paths}\label{sec:temporal}
 
@@ -105,18 +105,20 @@ is \emph{temporally connected} on a set of ordered vertex pairs if each such pai
 path.
 \end{definition}
 
-\subsection{The Minimum Aged Labelling problem}\label{sec:mal}
+\subsection{The Minimum Labelling problem}\label{sec:mal}
 
-Minimum Aged Labelling (MAL), introduced by Carnevale et al.~\cite{CDO25}, asks for a labelling that
-uses as few labels as possible while making the graph temporally connected.
+The Minimum Labelling (ML) problem, introduced by Klobas et al.~\cite{KMMS24}, asks for the fewest
+labels that make a graph temporally connected; additionally bounding the largest label gives the
+Minimum Aged Labelling (MAL) problem of Carnevale et al.~\cite{CDO25}. Our problem builds on ML---we
+impose no bound on the labels---generalised to edge travel times and augmented with capacity.
 
-\begin{problem}[Minimum Aged Labelling (MAL)]\label{prob:mal}
+\begin{problem}[Minimum Labelling (ML)]\label{prob:ml}
 \leavevmode
 \begin{description}[topsep=2pt,itemsep=1pt,leftmargin=6.5em,style=nextline]
-  \item[\textnormal{Input:}] a digraph $G=(V,E)$ and a maximum-label bound $a\in\mathbb{N}$.
-  \item[\textnormal{Output:}] a label function $\lambda:E\to 2^{\mathbb{N}}$.
-  \item[\textnormal{Constraints:}] $(G,\lambda)$ is temporally connected (between every ordered pair
-        of vertices), and $\lambda(e)\subseteq\{1,\dots,a\}$ for every $e$.
+  \item[\textnormal{Input:}] a digraph $G=(V,E)$.
+  \item[\textnormal{Output:}] a label function $\lambda:E\to 2^{\Zzero}$.
+  \item[\textnormal{Constraint:}] $(G,\lambda)$ is temporally connected between every ordered pair of
+        vertices.
   \item[\textnormal{Objective:}] minimize the total number of labels $\displaystyle\sum_{e\in E}|\lambda(e)|$.
 \end{description}
 \end{problem}
@@ -129,11 +131,10 @@ captures this by charging each edge $e$, at each departure time $t$, for the num
 vehicles needed to carry the flow that departs on $e$ at time $t$ (formally, the
 objective~\eqref{eq:objective}).
 
-The variant we study augments MAL with edge travel times $w$, a demand set with real-valued amounts,
-and the capacity objective; and it simplifies MAL in two ways: there is \emph{no} maximum-label bound
-(a label may be any time in $\Zzero$), and all demands are available from time $0$ (a common release
-time). Flow is splittable, and nodes have unlimited buffering: a demand may wait at a node for any
-amount of time.
+The variant we study augments ML with edge travel times $w$, a demand set with real-valued amounts,
+and the capacity objective; like ML it imposes no maximum-label bound (a label may be any time in
+$\Zzero$), and all demands are available from time $0$. Flow is splittable, and nodes have unlimited
+buffering: a demand may wait at a node for any amount of time.
 
 \begin{problem}[MAL-C, the variant studied here]\label{prob:malc}
 \leavevmode
@@ -150,8 +151,7 @@ amount of time.
       \item \emph{Label--flow consistency:} for all $e\in E$, $t\in\Zzero$ and $i$, if $f_i(e,t)>0$
             then $t\in\lambda(e)$.
       \item \emph{Flow conservation:} each $f_i$ routes $\dem(d_i)$ units from $\src(d_i)$ to
-            $\dst(d_i)$, respecting travel times and using unlimited node buffering; all flow is
-            released at time $0$.
+            $\dst(d_i)$, respecting travel times and using unlimited node buffering.
     \end{enumerate}
   \item[\textnormal{Objective:}] minimize
     \begin{equation}\label{eq:objective}
@@ -210,8 +210,7 @@ black box.
 %====================================================================
 
 We describe the four ingredients---backbone construction, backbone labelling, backbone routing, and
-shortest-path routing---and then combine them (Algorithm~\ref{alg:main}). Because each ingredient is
-defined before it is used, the pieces can be read in order.
+shortest-path routing---and then combine them (Algorithm~\ref{alg:main}).
 
 \subsection{Building the backbone}\label{sec:build}
 
@@ -478,9 +477,9 @@ temporal path ending at $T_i+\Din+\dout(v)\le T_i+\Din+\Dout$.
 \end{proof}
 
 \begin{lemma}[Cross edges preserve temporality]\label{lem:cross}
-Let $c=(a,b)$ be a cross edge with $a\in C_i$ and $b\in C_j$ ($i<j$). Under the base
-times~\eqref{eq:basetime}, the flow reaches $a$ no later than $t_{\mathrm{cross}}(c)=T_i+\Din+\Dout$,
-departs $c$ at that label, and reaches $b$ by time $T_j$. Hence the cross hop together with the
+Let $e=(a,b)$ be a cross edge with $a\in C_i$ and $b\in C_j$ ($i<j$). Under the base
+times~\eqref{eq:basetime}, the flow reaches $a$ no later than $t_{\mathrm{cross}}(e)=T_i+\Din+\Dout$,
+departs $e$ at that label, and reaches $b$ by time $T_j$. Hence the cross hop together with the
 hand-off into $C_j$ is time-respecting.
 \end{lemma}
 
@@ -488,11 +487,11 @@ hand-off into $C_j$ is time-respecting.
 By the canonical route, $a$ is the exit vertex of $C_i$, reached by descending the out-tree; hence by
 the descent in Lemma~\ref{lem:intra} the flow arrives at $a$ at time
 \[
-  T_i+\Din+\dout(a)\;\le\;T_i+\Din+\Dout=t_{\mathrm{cross}}(c),
+  T_i+\Din+\dout(a)\;\le\;T_i+\Din+\Dout=t_{\mathrm{cross}}(e),
 \]
-using $\dout(a)\le\Dout$. Since $t_{\mathrm{cross}}(c)$ is the only label of $c$, the flow (waiting if
-necessary) departs $c$ at $t_{\mathrm{cross}}(c)$ and arrives at $b$ at $t_{\mathrm{cross}}(c)+w(c)$.
-By~\eqref{eq:basetime}, $T_j\ge T_i+\Din+\Dout+w(c)=t_{\mathrm{cross}}(c)+w(c)$, so the flow reaches
+using $\dout(a)\le\Dout$. Since $t_{\mathrm{cross}}(e)$ is the only label of $e$, the flow (waiting if
+necessary) departs $e$ at $t_{\mathrm{cross}}(e)$ and arrives at $b$ at $t_{\mathrm{cross}}(e)+w(e)$.
+By~\eqref{eq:basetime}, $T_j\ge T_i+\Din+\Dout+w(e)=t_{\mathrm{cross}}(e)+w(e)$, so the flow reaches
 $b$ by $T_j$. Finally the in-tree departure at $b$ is $T_j+D^{(j)}_{\mathrm{in}}-\din(b)\ge T_j$, so
 the flow waits at $b$ and continues up $C_j$'s in-tree; the hand-off is time-respecting.
 \end{proof}
@@ -515,9 +514,9 @@ the flow waits at $b$ and continues up $C_j$'s in-tree; the hand-off is time-res
     \node[font=\scriptsize] at (0.7,-1.85) {arrive $\le t_{\mathrm{cross}}$};
     \node[font=\scriptsize] at (6.3,-1.85) {arrive $\le T_j$};
 \end{tikzpicture}
-\caption{Cross edge $c=(a,b)$, $a\in C_i$, $b\in C_j$ (Lemma~\ref{lem:cross}). Descending $C_i$'s
-out-tree, the flow reaches the exit $a$ by $t_{\mathrm{cross}}=T_i+\Din+\Dout$; it departs $c$ at
-$t_{\mathrm{cross}}$ and reaches the entry $b$ of $C_j$ by $T_j\ge t_{\mathrm{cross}}+w(c)$, then waits
+\caption{Cross edge $e=(a,b)$, $a\in C_i$, $b\in C_j$ (Lemma~\ref{lem:cross}). Descending $C_i$'s
+out-tree, the flow reaches the exit $a$ by $t_{\mathrm{cross}}=T_i+\Din+\Dout$; it departs $e$ at
+$t_{\mathrm{cross}}$ and reaches the entry $b$ of $C_j$ by $T_j\ge t_{\mathrm{cross}}+w(e)$, then waits
 for $C_j$'s in-tree schedule ($\ge T_j$).}
 \label{fig:cross}
 \end{figure}
@@ -692,6 +691,11 @@ P.~Berman, A.~Bhattacharyya, K.~Makarychev, S.~Raskhodnikova, and G.~Yaroslavtse
 D.~Carnevale, G.~D'Angelo, and M.~Olsen.
 \newblock Approximating optimal labelings for temporal connectivity.
 \newblock In \emph{AAAI}, 2025.
+
+\bibitem{KMMS24}
+N.~Klobas, G.~B.~Mertzios, H.~Molter, and P.~G.~Spirakis.
+\newblock The complexity of computing optimum labelings for temporal connectivity.
+\newblock \emph{Journal of Computer and System Sciences}, 146:103564, 2024.
 \end{thebibliography}
 
 \end{document}
