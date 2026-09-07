@@ -117,8 +117,7 @@ impose no bound on the labels---generalised to edge travel times and augmented w
 \begin{description}[topsep=2pt,itemsep=1pt,leftmargin=6.5em,style=nextline]
   \item[\textnormal{Input:}] a digraph $G=(V,E)$.
   \item[\textnormal{Output:}] a label function $\lambda:E\to 2^{\Zzero}$.
-  \item[\textnormal{Constraint:}] $(G,\lambda)$ is temporally connected between every ordered pair of
-        vertices.
+  \item[\textnormal{Constraint:}] $(G,\lambda)$ is temporally connected.
   \item[\textnormal{Objective:}] minimize the total number of labels $\displaystyle\sum_{e\in E}|\lambda(e)|$.
 \end{description}
 \end{problem}
@@ -456,40 +455,60 @@ time window $[\,T_i,\;T_i+\Din+\Dout\,]$.
 \end{lemma}
 
 \begin{proof}
-\emph{Ascent.} Along the in-tree path $u=x_0\to\cdots\to x_p=h_i$ with $e_k=(x_k,x_{k+1})\in\Tin$,
-\eqref{eq:treerec} gives $\din(x_k)=w(e_k)+\din(x_{k+1})$. Departing $x_k$ at
-$t_{\mathrm{in}}(e_k)=T_i+\Din-\din(x_k)$, the flow reaches $x_{k+1}$ at
-\[
-  \bigl(T_i+\Din-\din(x_k)\bigr)+w(e_k)=T_i+\Din-\din(x_{k+1})=t_{\mathrm{in}}(e_{k+1}),
-\]
-so each hop is time-respecting with no waiting, and the flow reaches $h_i$ at $T_i+\Din$ (as
-$\din(h_i)=0$).
+By Definition~\ref{def:tpath} the route is a temporal path once we check, edge by edge, that the next
+departure never precedes the current arrival, i.e.\ that $t_{i+1}\ge t_i+w(e_i)$. We show that on each
+tree edge the arrival coincides with the next label, so this condition holds with equality and no
+waiting occurs.
 
-\emph{Descent.} Along the out-tree path $h_i=y_0\to\cdots\to y_q=v$ with $g_k=(y_k,y_{k+1})\in\Tout$
-and $\dout(y_{k+1})=\dout(y_k)+w(g_k)$ by~\eqref{eq:treerec}, the first edge departs $h_i$ at
-$t_{\mathrm{out}}(g_0)=T_i+\Din+\dout(h_i)=T_i+\Din$, exactly the arrival at $h_i$; inductively the
-flow reaches $y_{k+1}$ at $T_i+\Din+\dout(y_{k+1})=t_{\mathrm{out}}(g_{k+1})$. The concatenation is a
-temporal path ending at $T_i+\Din+\dout(v)\le T_i+\Din+\Dout$.
+\emph{Ascent.} Along the in-tree path $u=x_0\to\cdots\to x_p=h_i$ with $e_k=(x_k,x_{k+1})\in\Tin$,
+\eqref{eq:treerec} gives $\din(x_k)=w(e_k)+\din(x_{k+1})$. Departing $x_k$ at its label
+$t_{\mathrm{in}}(e_k)=T_i+\Din-\din(x_k)$, the flow arrives at $x_{k+1}$ at
+\[
+  t_{\mathrm{in}}(e_k)+w(e_k)=\bigl(T_i+\Din-\din(x_k)\bigr)+w(e_k)=T_i+\Din-\din(x_{k+1})=t_{\mathrm{in}}(e_{k+1}),
+\]
+exactly the label of the next in-tree edge; the monotonicity condition thus holds with equality on
+every ascent edge (no waiting), and the flow reaches $h_i$ at $T_i+\Din$ (since $\din(h_i)=0$).
+
+\emph{Descent.} The first out-tree edge departs $h_i$ at
+$t_{\mathrm{out}}(g_0)=T_i+\Din+\dout(h_i)=T_i+\Din$, exactly the arrival at $h_i$ just computed, so the
+hand-off at the hub is again an equality. Along the out-tree path $h_i=y_0\to\cdots\to y_q=v$ with
+$g_k=(y_k,y_{k+1})\in\Tout$ and $\dout(y_{k+1})=\dout(y_k)+w(g_k)$ by~\eqref{eq:treerec}, departing
+$y_k$ at its label $t_{\mathrm{out}}(g_k)=T_i+\Din+\dout(y_k)$ the flow arrives at $y_{k+1}$ at
+\[
+  t_{\mathrm{out}}(g_k)+w(g_k)=T_i+\Din+\dout(y_{k+1})=t_{\mathrm{out}}(g_{k+1}),
+\]
+again the next label. Every edge of the route therefore meets $t_{i+1}=t_i+w(e_i)$ with equality, so
+the route is a temporal path; it reaches $v$ at $T_i+\Din+\dout(v)\le T_i+\Din+\Dout$.
 \end{proof}
 
 \begin{lemma}[Cross edges preserve temporality]\label{lem:cross}
 Let $e=(a,b)$ be a cross edge with $a\in C_i$ and $b\in C_j$ ($i<j$). Under the base
-times~\eqref{eq:basetime}, the flow reaches $a$ no later than $t_{\mathrm{cross}}(e)=T_i+\Din+\Dout$,
-departs $e$ at that label, and reaches $b$ by time $T_j$. Hence the cross hop together with the
-hand-off into $C_j$ is time-respecting.
+times~\eqref{eq:basetime}, the flow arrives at $a$ no later than the label $t_{\mathrm{cross}}(e)=T_i+\Din+\Dout$,
+departs $e$ at that label, and arrives at $b$ by time $T_j$. Hence the cross hop and the hand-off into
+$C_j$ satisfy the monotonicity condition $t_{i+1}\ge t_i+w(e_i)$---here possibly with strict inequality,
+since the flow may wait.
 \end{lemma}
 
 \begin{proof}
-By the canonical route, $a$ is the exit vertex of $C_i$, reached by descending the out-tree; hence by
-the descent in Lemma~\ref{lem:intra} the flow arrives at $a$ at time
+As in Lemma~\ref{lem:intra} we check the condition $t_{i+1}\ge t_i+w(e_i)$ at each transition; the only
+difference is that here it may hold strictly (the flow waits), because $e$ carries the single label
+$t_{\mathrm{cross}}(e)$ rather than a matching pair of tree labels.
+
+\emph{Arrival at $a$.} By the canonical route $a$ is the exit vertex of $C_i$, reached by descending the
+out-tree, so by the descent in Lemma~\ref{lem:intra} the flow arrives at $a$ at
 \[
   T_i+\Din+\dout(a)\;\le\;T_i+\Din+\Dout=t_{\mathrm{cross}}(e),
 \]
-using $\dout(a)\le\Dout$. Since $t_{\mathrm{cross}}(e)$ is the only label of $e$, the flow (waiting if
-necessary) departs $e$ at $t_{\mathrm{cross}}(e)$ and arrives at $b$ at $t_{\mathrm{cross}}(e)+w(e)$.
-By~\eqref{eq:basetime}, $T_j\ge T_i+\Din+\Dout+w(e)=t_{\mathrm{cross}}(e)+w(e)$, so the flow reaches
-$b$ by $T_j$. Finally the in-tree departure at $b$ is $T_j+D^{(j)}_{\mathrm{in}}-\din(b)\ge T_j$, so
-the flow waits at $b$ and continues up $C_j$'s in-tree; the hand-off is time-respecting.
+using $\dout(a)\le\Dout$. Thus the arrival at $a$ is at most the departure label $t_{\mathrm{cross}}(e)$,
+so the flow departs $e$ at its label (waiting at $a$ if the inequality is strict).
+
+\emph{Cross hop.} Departing $a$ at $t_{\mathrm{cross}}(e)$, the flow arrives at $b$ at
+$t_{\mathrm{cross}}(e)+w(e)$. By~\eqref{eq:basetime}, $T_j\ge T_i+\Din+\Dout+w(e)=t_{\mathrm{cross}}(e)+w(e)$,
+so the flow arrives at $b$ by time $T_j$.
+
+\emph{Hand-off into $C_j$.} The first in-tree departure at $b$ is $T_j+D^{(j)}_{\mathrm{in}}-\din(b)\ge T_j$,
+at least the arrival $t_{\mathrm{cross}}(e)+w(e)\le T_j$; so the flow waits at $b$ and continues up
+$C_j$'s in-tree, again meeting $t_{i+1}\ge t_i+w(e_i)$.
 \end{proof}
 
 \begin{figure}[H]
@@ -529,9 +548,10 @@ is a temporal path by Lemma~\ref{lem:intra}. For the step, assume the prefix of 
 flow to the entry vertex of component $C_{i_l}$ by time $T_{i_l}$ (initially this holds, since the
 source is released at its in-tree label). The segment inside $C_{i_l}$ is a temporal path by
 Lemma~\ref{lem:intra} (the entry arrives by $T_{i_l}$, which is at most its in-tree departure), and
-the following cross edge with the hand-off into $C_{i_{l+1}}$ is time-respecting by
-Lemma~\ref{lem:cross}, delivering the flow to the next entry vertex by $T_{i_{l+1}}$. Splicing
-time-respecting sub-walks yields a temporal path.
+the following cross edge with the hand-off into $C_{i_{l+1}}$ meets the monotonicity condition
+$t_{i+1}\ge t_i+w(e_i)$ by Lemma~\ref{lem:cross}, delivering the flow to the next entry vertex by
+$T_{i_{l+1}}$. Splicing these sub-walks---each satisfying $t_{i+1}\ge t_i+w(e_i)$ at every edge---yields
+a temporal path.
 \end{proof}
 
 \subsection{At most two labels per edge}\label{sec:twolabel}
