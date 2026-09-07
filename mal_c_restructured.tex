@@ -72,8 +72,7 @@ vertices and $h$ the number of demands.
 %====================================================================
 
 In a \emph{temporal} (time-varying) network, an edge may be traversed only at certain prescribed
-times. This section fixes the temporal-graph vocabulary, introduces the labelling problems for
-temporal connectivity, and states the capacity-constrained variant we study.
+times.
 
 \subsection{Temporal graphs and temporal paths}\label{sec:temporal}
 
@@ -162,16 +161,14 @@ buffering: a demand may wait at a node for any amount of time.
 
 \noindent In \eqref{eq:objective}, the total flow that crosses an edge $e$ at departure time $t$ is
 carried by $\bigl\lceil\sum_i f_i(e,t)\bigr\rceil$ unit-capacity vehicles; a vehicle that is not full
-still counts as one dispatch (the \emph{round-up}). Objective~\eqref{eq:objective} thus counts the
-total number of vehicle dispatches over the whole network. Node buffering is free---only edge
-dispatches are charged---which is why waiting at a node costs nothing.
+still counts as one dispatch (the \emph{round-up}). Node buffering is free: only edge dispatches are
+charged.
 
 %====================================================================
 \section{Overview of the Approach}\label{sec:overview}
 %====================================================================
 
-All waste in \eqref{eq:objective} comes from the round-up: a vehicle that is not full still counts as
-one. Two observations drive the algorithm. First, \emph{integer amounts never waste}: if a demand
+All waste in \eqref{eq:objective} comes from the round-up. Two observations drive the algorithm. First, \emph{integer amounts never waste}: if a demand
 sends a whole number of units along a fixed path, every edge on the path carries an integer amount and
 the round-up does nothing. Second, the wasteful part is each demand's \emph{fractional} remainder; if
 every remainder were shipped on its own it would need a whole vehicle per edge---exactly the blow-up
@@ -192,20 +189,19 @@ subgraph that contains a directed $s_i\!\to\!t_i$ path for every $i$.
 \end{definition}
 
 \noindent With unit edge costs, minimizing cost means using as few edges as possible, so a DSF
-solution \emph{reuses} edges across many terminal pairs rather than giving each pair its own path.
-This small, shared edge set is exactly what lets the fractional flows of different demands consolidate
-onto common edges (and share vehicles); being small, it also keeps the backbone's own dispatch cost
-low (\S\ref{sec:ratio}).
+solution \emph{reuses} edges across terminal pairs rather than giving each pair its own path. This
+small shared edge set lets different demands' fractional flows consolidate onto common edges, and its
+small size keeps the backbone's own dispatch cost low (\S\ref{sec:ratio}).
 
 \noindent Berman, Bhattacharyya, Makarychev, Raskhodnikova and Yaroslavtsev~\cite{BBMRY13} give a
-polynomial-time $O(n^{2/3+\epsilon})$-approximation for DSF, for any fixed $\epsilon>0$; we employ this approximation algorithm for our algorithm design.
+polynomial-time $O(n^{2/3+\epsilon})$-approximation for DSF, for any fixed $\epsilon>0$, which our algorithm uses as a black box.
 
 %====================================================================
 \section{The Algorithm}\label{sec:algorithm}
 %====================================================================
 
-There are four ingredients in our algorithm ---backbone construction, backbone labelling, backbone routing, and
-shortest-path routing---and then we combine them together (Algorithm~\ref{alg:main}).
+There are four ingredients in our algorithm---backbone construction, backbone labelling, backbone
+routing, and shortest-path routing---and Algorithm~\ref{alg:main} combines them.
 
 \subsection{Building the backbone}\label{sec:build}
 
@@ -440,8 +436,6 @@ at time $7$ and reaches $q$ at $7+w(c,q)=9=T_2$, exactly when $C_2$'s schedule o
 \section{Analysis}\label{sec:feasibility}
 %====================================================================
 
-We now analyze Algorithm by proving its correctness, showing that every backbone edge carries at most two labels, and establishing its approximation ratio.
-
 \subsection{Temporal paths between all terminal pairs}\label{sec:tempconn}
 
 \begin{lemma}[Intra-component temporal path]\label{lem:intra}
@@ -536,8 +530,8 @@ for $C_j$'s in-tree schedule ($\ge T_j$).}
 
 \begin{theorem}[A temporal path for every terminal pair]\label{thm:temporal}
 For every terminal pair $(u,v)$ joined through the backbone---within one component or across
-several---the canonical route $R(u,v)$ is a temporal path. Hence there is a temporal path between every terminal pair, and all backbone flows 
-  can be routed simultaneously.
+several---the canonical route $R(u,v)$ is a temporal path, so all backbone flows can be routed
+simultaneously.
 \end{theorem}
 
 \begin{proof}
