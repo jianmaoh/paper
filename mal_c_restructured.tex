@@ -179,7 +179,7 @@ Concretely, we split each demand's amount into an integer part and a fractional 
 is sent along a shortest path. The fractional part is routed on a \emph{backbone}---a subgraph that
 connects every terminal pair---where flows from different demands merge. A threshold $\theta\in(0,1)$
 controls how much fractional flow is diverted to the backbone rather than left on shortest paths. The
-main challenge is to \emph{label} the backbone so that (i) merged flows can actually travel (there is a temporal path between every terminal pair on the backbone) and (ii) each edge carries only a few labels, so almost no
+main challenge is to \emph{label} the backbone so that (i) merged flows can actually travel on temporal paths between every terminal pair on the backbone and (ii) each edge carries only a few labels, so almost no
 rounding occurs. We build the backbone from a Directed Steiner Forest.
 
 \begin{definition}[Directed Steiner Forest]\label{def:dsf}
@@ -194,7 +194,7 @@ small shared edge set lets different demands' fractional flows consolidate onto 
 small size keeps the backbone's own dispatch cost low (\S\ref{sec:ratio}).
 
 \noindent Berman, Bhattacharyya, Makarychev, Raskhodnikova and Yaroslavtsev~\cite{BBMRY13} give a
-polynomial-time $O(n^{2/3+\epsilon})$-approximation for DSF, for any fixed $\epsilon>0$, which our algorithm uses as a black box.
+polynomial-time $O(n^{2/3+\epsilon})$-approximation for DSF, for any fixed $\epsilon>0$.
 
 %====================================================================
 \section{The Algorithm}\label{sec:algorithm}
@@ -224,7 +224,7 @@ inside a single component.
 
 \paragraph{Rooted trees (lines~2--4).} Fix a component $C_i$ and a \emph{center} $h_i\in C_i$. Because $C_i$ is an SCC of $\GSF$, the
 subgraph it induces in $\GSF$ is strongly connected; inside it, let $\din(x)$ be the shortest-path
-distance (under $w$) from $x$ to $h_i$, and $\dout(x)$ the distance from $h_i$ to $x$. These are
+distance from $x$ to $h_i$, and $\dout(x)$ the distance from $h_i$ to $x$. These are
 finite and are realised by shortest-path trees that use only edges of $\GSF$ and span $C_i$---the
 reverse \emph{in-tree} $\Tin$ (edges directed towards $h_i$) and the forward \emph{out-tree} $\Tout$
 (edges directed away from $h_i$). Write $\Din=\max_{x\in C_i}\din(x)$ and $\Dout=\max_{x\in C_i}\dout(x)$ for the in- and
@@ -308,8 +308,7 @@ path, and $\len(\SP_i):=\len(\SP(\src(d_i),\dst(d_i)))$ for demand $i$.
 \subsection{The full algorithm}\label{sec:full}
 
 We split each amount $\dem(d_i)=d_I+d_f$ into its integer part $d_I=\lfloor\dem(d_i)\rfloor$ and
-fractional part $d_f\in[0,1)$. The integer part is always sent by $\textsc{Route-SP}$
-(Algorithm~\ref{alg:main}, line~5). The fractional part is governed by $\theta$ (lines~6--10): if
+fractional part $d_f\in[0,1)$. The integer part is always sent by $\textsc{Route-SP}$. The fractional part is governed by $\theta$ : if
 $d_f\le2\theta$ the whole of $d_f$ goes on the backbone; otherwise a piece of size exactly $\theta$
 goes on the backbone and the remaining $d_f-\theta$ is sent by $\textsc{Route-SP}$.
 
