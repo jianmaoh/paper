@@ -171,9 +171,9 @@ charged.
 All waste in \eqref{eq:objective} comes from the round-up. Two observations drive the algorithm. First, \emph{integer amounts never waste}: if a demand
 sends a whole number of units along a fixed path, every edge on the path carries an integer amount and
 the round-up does nothing. Second, the wasteful part is each demand's \emph{fractional} remainder; if
-every remainder were shipped on its own it would need a whole vehicle per edge---exactly the blow-up
-we must avoid. We therefore \emph{consolidate} the fractional remainders of many demands onto one
-shared network so that they travel together and share vehicles.
+every remainder were shipped on its own it would need a whole vehicle per edge. We therefore
+\emph{consolidate} the fractional remainders of many demands onto one shared network so that they
+travel together and share vehicles.
 
 Concretely, we split each demand's amount into an integer part and a fractional part. The integer part
 is sent along a shortest path. The fractional part is routed on a \emph{backbone}---a subgraph that
@@ -336,7 +336,7 @@ goes on the backbone and the remaining $d_f-\theta$ is sent by $\textsc{Route-SP
 \subsection{A worked example}\label{sec:example}
 
 We illustrate $\textsc{Assign-Labels}$ on a backbone whose graph $\GSF$ has two SCCs, $C_1$ and $C_2$;
-for concreteness we take each to be a small directed triangle and focus only on how the labels arise:
+for concreteness each component is a small directed triangle:
 \[
   C_1:\ a\to b\to c\to a,\qquad C_2:\ p\to q\to r\to p,
 \]
@@ -406,7 +406,7 @@ $C_1$ ever issues. By~\eqref{eq:basetime},
   T_2=\max\bigl\{\,T_1+1,\ \ T_1+D^{(1)}_{\mathrm{in}}+D^{(1)}_{\mathrm{out}}+w(c,q)\,\bigr\}
      =\max\{\,1,\ 7+2\,\}=9,
 \]
-so $C_2$ opens late enough to catch whatever arrives through $c\to q$.
+so $C_2$ opens no earlier than any flow can arrive through $c\to q$.
 
 \paragraph{Component $C_2$ ($T_2=9$).} With $h_2=p$, the in-tree $q\to r\to p$ has $\din(p)=0$,
 $\din(r)=1$, $\din(q)=2$ and the out-tree $p\to q\to r$ has $\dout(p)=0$, $\dout(q)=1$, $\dout(r)=2$,
@@ -429,8 +429,8 @@ with schedule
   (a,b)\,@\,4\ \to\ (b,c)\,@\,6\ \to\ (c,q)\,@\,7\ \to\ (q,r)\,@\,9\ \to\ (r,p)\,@\,10\ \to\ (p,q)\,@\,11\ \to\ (q,r)\,@\,12,
 \]
 arriving at $r$ at time $13$. Every departure is at least the preceding arrival, so the route is a
-temporal path. Note how the cross label $7$ and the base time $T_2=9$ dovetail: the flow leaves $C_1$
-at time $7$ and reaches $q$ at $7+w(c,q)=9=T_2$, exactly when $C_2$'s schedule opens.
+temporal path. The flow leaves $C_1$ at time $7$ and reaches $q$ at $7+w(c,q)=9=T_2$, matching $C_2$'s
+base time.
 
 %====================================================================
 \section{Analysis}\label{sec:feasibility}
