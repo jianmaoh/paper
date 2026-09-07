@@ -294,47 +294,10 @@ out-tree descent $h_i\to\cdots\to v$.
 \noindent The subroutine $\textsc{Route-SF}(s,t,g)$ pushes $g$ units of flow along the canonical route
 $R(s,t)$, each edge departing at the label of the role in which the route uses it.
 
-\subsection{Routing on shortest paths}\label{sec:sp}
-
-The subroutine $\textsc{Route-SP}(s,t,g)$ sends $g$ units of flow along a shortest $s$--$t$ path
-$P=(s=v_0,v_1,\dots,v_\ell=t)$ and labels the path so it forms a temporal path. Since every demand is
-released at time $0$, the flow leaves $s$ at time $0$; the label of edge $e_k=(v_{k-1},v_k)$ is then
-the time at which the flow reaches its tail $v_{k-1}$, i.e.\ the cumulative travel time
-$\ell_k=\sum_{j=1}^{k-1}w(e_j)$, which we add to $\lambda(e_k)$. For example, on $a\to b\to c$ the flow
-leaves $a$ at time $0$, so $(a,b)$ gets label $0$; if $w(a,b)=3$ it reaches $b$ at time $3$, so $(b,c)$
-gets label $3$; and so on. We write $\len(\SP(s,t))$ for the number of edges of a shortest $s$--$t$
-path, and $\len(\SP_i):=\len(\SP(\src(d_i),\dst(d_i)))$ for demand $i$.
-
-\subsection{The full algorithm}\label{sec:full}
-
-We split each amount $\dem(d_i)=d_I+d_f$ into its integer part $d_I=\lfloor\dem(d_i)\rfloor$ and
-fractional part $d_f\in[0,1)$. The integer part is always sent by $\textsc{Route-SP}$. The fractional part is governed by $\theta$ : if
-$d_f\le2\theta$ the whole of $d_f$ goes on the backbone; otherwise a piece of size exactly $\theta$
-goes on the backbone and the remaining $d_f-\theta$ is sent by $\textsc{Route-SP}$.
-
-\begin{algorithm}[t]
-\caption{$\theta$-Threshold Two-Track Flow Splitting}
-\label{alg:main}
-\begin{algorithmic}[1]
-\Require edge-weighted digraph $G=(V,E)$ with $w$, demand set $D$ ($|D|=h$), threshold $\theta\in(0,1)$
-\State $\GSF=(\VSF,\ESF)\gets\textsc{Build-Backbone}(G,D)$ \Comment{DSF on the terminal pairs (\S\ref{sec:build})}
-\State $\lambda\gets\textsc{Assign-Labels}(\GSF,w)$ \Comment{Algorithm~\ref{alg:labels}}
-\For{each demand $d_i\in D$, with $(s,t)=(\src(d_i),\dst(d_i))$}
-  \State $d_I\gets\lfloor\dem(d_i)\rfloor$;\quad $d_f\gets\dem(d_i)-d_I$
-  \State $\textsc{Route-SP}(s,t,d_I)$ \Comment{integer part on a shortest path}
-  \If{$d_f\le 2\theta$}
-     \State $\textsc{Route-SF}(s,t,d_f)$ \Comment{all of the fractional part on the backbone}
-  \Else
-     \State $\textsc{Route-SF}(s,t,\theta)$;\quad $\textsc{Route-SP}(s,t,\,d_f-\theta)$
-  \EndIf
-\EndFor
-\State \Return the labelling $\lambda$ and the flows $\{f_i\}$
-\end{algorithmic}
-\end{algorithm}
-
 \subsection{A worked example}\label{sec:example}
 
-We illustrate $\textsc{Assign-Labels}$ on a backbone whose graph $\GSF$ has two SCCs, $C_1$ and $C_2$;
+We illustrate $\textsc{Assign-Labels}$ and the resulting canonical routes on a backbone whose graph
+$\GSF$ has two SCCs, $C_1$ and $C_2$;
 for concreteness each component is a small directed triangle:
 \[
   C_1:\ a\to b\to c\to a,\qquad C_2:\ p\to q\to r\to p,
@@ -430,6 +393,44 @@ with schedule
 arriving at $r$ at time $13$. Every departure is at least the preceding arrival, so the route is a
 temporal path. The flow leaves $C_1$ at time $7$ and reaches $q$ at $7+w(c,q)=9=T_2$, matching $C_2$'s
 base time.
+
+\subsection{Routing on shortest paths}\label{sec:sp}
+
+The subroutine $\textsc{Route-SP}(s,t,g)$ sends $g$ units of flow along a shortest $s$--$t$ path
+$P=(s=v_0,v_1,\dots,v_\ell=t)$ and labels the path so it forms a temporal path. Since every demand is
+released at time $0$, the flow leaves $s$ at time $0$; the label of edge $e_k=(v_{k-1},v_k)$ is then
+the time at which the flow reaches its tail $v_{k-1}$, i.e.\ the cumulative travel time
+$\ell_k=\sum_{j=1}^{k-1}w(e_j)$, which we add to $\lambda(e_k)$. For example, on $a\to b\to c$ the flow
+leaves $a$ at time $0$, so $(a,b)$ gets label $0$; if $w(a,b)=3$ it reaches $b$ at time $3$, so $(b,c)$
+gets label $3$; and so on. We write $\len(\SP(s,t))$ for the number of edges of a shortest $s$--$t$
+path, and $\len(\SP_i):=\len(\SP(\src(d_i),\dst(d_i)))$ for demand $i$.
+
+\subsection{The full algorithm}\label{sec:full}
+
+We split each amount $\dem(d_i)=d_I+d_f$ into its integer part $d_I=\lfloor\dem(d_i)\rfloor$ and
+fractional part $d_f\in[0,1)$. The integer part is always sent by $\textsc{Route-SP}$. The fractional part is governed by $\theta$: if
+$d_f\le2\theta$ the whole of $d_f$ goes on the backbone; otherwise a piece of size exactly $\theta$
+goes on the backbone and the remaining $d_f-\theta$ is sent by $\textsc{Route-SP}$.
+
+\begin{algorithm}[t]
+\caption{$\theta$-Threshold Two-Track Flow Splitting}
+\label{alg:main}
+\begin{algorithmic}[1]
+\Require edge-weighted digraph $G=(V,E)$ with $w$, demand set $D$ ($|D|=h$), threshold $\theta\in(0,1)$
+\State $\GSF=(\VSF,\ESF)\gets\textsc{Build-Backbone}(G,D)$ \Comment{DSF on the terminal pairs (\S\ref{sec:build})}
+\State $\lambda\gets\textsc{Assign-Labels}(\GSF,w)$ \Comment{Algorithm~\ref{alg:labels}}
+\For{each demand $d_i\in D$, with $(s,t)=(\src(d_i),\dst(d_i))$}
+  \State $d_I\gets\lfloor\dem(d_i)\rfloor$;\quad $d_f\gets\dem(d_i)-d_I$
+  \State $\textsc{Route-SP}(s,t,d_I)$ \Comment{integer part on a shortest path}
+  \If{$d_f\le 2\theta$}
+     \State $\textsc{Route-SF}(s,t,d_f)$ \Comment{all of the fractional part on the backbone}
+  \Else
+     \State $\textsc{Route-SF}(s,t,\theta)$;\quad $\textsc{Route-SP}(s,t,\,d_f-\theta)$
+  \EndIf
+\EndFor
+\State \Return the labelling $\lambda$ and the flows $\{f_i\}$
+\end{algorithmic}
+\end{algorithm}
 
 %====================================================================
 \section{Analysis}\label{sec:feasibility}
