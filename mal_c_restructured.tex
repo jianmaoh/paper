@@ -204,8 +204,8 @@ polynomial-time $O(n^{2/3+\epsilon})$-approximation for DSF, for any fixed $\eps
 \section{The Algorithm}\label{sec:algorithm}
 %====================================================================
 
-We describe the four ingredients---backbone construction, backbone labelling, backbone routing, and
-shortest-path routing---and then combine them (Algorithm~\ref{alg:main}).
+There are four ingredients in our algorithm ---backbone construction, backbone labelling, backbone routing, and
+shortest-path routing---and then we combine them together (Algorithm~\ref{alg:main}).
 
 \subsection{Building the backbone}\label{sec:build}
 
@@ -440,9 +440,7 @@ at time $7$ and reaches $q$ at $7+w(c,q)=9=T_2$, exactly when $C_2$'s schedule o
 \section{Analysis}\label{sec:feasibility}
 %====================================================================
 
-With the algorithm fully described, we prove that it is correct---the labelled backbone lets every
-demand travel (\S\ref{sec:tempconn})---that each backbone edge carries at most two labels
-(\S\ref{sec:twolabel}), and finally we bound its approximation ratio (\S\ref{sec:ratio}).
+We now analyze Algorithm by proving its correctness, showing that every backbone edge carries at most two labels, and establishing its approximation ratio.
 
 \subsection{Temporal paths between all terminal pairs}\label{sec:tempconn}
 
@@ -663,26 +661,6 @@ At $\theta^\ast$ each of the first two terms equals $\sqrt{h}\,n^{1/3}$, while t
   \;=\; O\!\bigl(\max\{\sqrt{h}\,n^{1/3},\,n^{2/3}\}\bigr).\;}
 \end{equation}
 
-\begin{theorem}[Approximation guarantee]\label{thm:main}
-Algorithm~\ref{alg:main} with threshold $\theta^\ast=1/(\sqrt{h}\,n^{1/3})$ runs in polynomial time and
-returns a feasible labelling and routing whose cost is within a factor
-$O\!\bigl(\sqrt{h}\,n^{1/3}+n^{2/3}\bigr)$ of the optimum of~\eqref{eq:objective}.
-\end{theorem}
-
-\begin{remark}[Two regimes]
-The bound~\eqref{eq:final} splits at $h=n^{2/3}$: it is $O(\sqrt{h}\,n^{1/3})$ when $h\ge n^{2/3}$
-(round-up dominated) and $O(n^{2/3})$ when $h<n^{2/3}$ (backbone dominated). When demands are plentiful
-the flow-splitting is what limits the cost; when they are few the cost is governed by the Directed
-Steiner Forest approximation factor $O(n^{2/3})$, which no choice of $\theta$ can remove, since the
-backbone must be built to enable consolidation.
-\end{remark}
-
-\begin{remark}[On a common pitfall]
-Dropping the infrastructure term $2|\ESF|$ in~\eqref{eq:sfsum}---folding it into
-$O(h\theta\,n^{2/3})$---is valid only when $h\theta\ge1$. But $h\theta^\ast=\sqrt{h}/n^{1/3}<1$ whenever
-$h<n^{2/3}$, so the additive term in fact dominates there; retaining it yields the honest
-bound~\eqref{eq:final}, whereas omitting it would incorrectly claim $O(\sqrt{h}\,n^{1/3})$.
-\end{remark}
 
 %====================================================================
 \section{Conclusion}\label{sec:conclusion}
